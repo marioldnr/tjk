@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>TyF – Track your Film, Serien und mehr</title>
+
+    <style>
+        /* Grunddesign der gesamten Webseite */
+        /* Ich stelle hier die Schriftart auf Arial ein, entferne alle Standard-Abstände und mache den Hintergrund schön hellrosa */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #fcedff;
+        }
+
+        /* Oberer Bereich der Seite mit Logo und Benutzermenü */
+        /* Hier mache ich einen schönen Farbverlauf und positioniere alles nebeneinander */
+        header {
+            background: linear-gradient(90deg, #d5b9f0, #7fe7dc);
+            padding: 1.2rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.12);
+        }
+
+        /* Bereich auf der linken Seite des Headers für Logo und Text */
+        /* Ich nutze Flexbox um Logo und Titel schön nebeneinander zu stellen */
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.3rem;
+        }
+
+        /* Das TyF Logo wird hier formatiert */
+        /* Ich mache es 4,5cm hoch und gebe ihm abgerundete Ecken für ein schönes Aussehen */
+        header img {
+            height: 4.5cm;
+            border-radius: 8px;
+        }
+
+        /* Die Hauptüberschrift "TyF - Track your Film, Serien und mehr" */
+        /* Ich mache sie groß und fett und gebe ihr etwas Abstand nach links */
+        header h1 {
+            margin: 0;
+            margin-left: 1rem;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        /* Das Menü oben rechts mit Benutzer-Icon und Logout */
+        /* Hier ist das Profil-Icon und das Dropdown-Menü mit E-Mail und Logout-Button */
+        .profile-section {
+            position: relative;
+        }
+
+        /* Das runde weiße Icon mit dem Benutzer-Symbol */
+        /* Wenn man drauf klickt, öffnet sich das Menü mit E-Mail und Logout */
+        .profile-icon {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: #4a90e2;
+            transition: transform 0.2s;
+        }
+
+        /* Wenn man mit der Maus über das Icon fährt, wird es ein bisschen größer */
+        .profile-icon:hover {
+            transform: scale(1.1);
+        }
+
+        /* Das Menü das unter dem Icon auftaucht wenn man drauf klickt */
+        /* Es zeigt die E-Mail des Benutzers und einen Logout-Button */
+        .profile-dropdown {
+            position: absolute;
+            top: 70px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            min-width: 200px;
+            display: none;
+            z-index: 1000;
+        }
+
+        /* Das Menü wird sichtbar wenn die Klasse 'show' hinzugefügt wird */
+        .profile-dropdown.show {
+            display: block;
+        }
+
+        /* Zeigt die E-Mail des angemeldeten Benutzers im Dropdown-Menü */
+        .profile-dropdown p {
+            margin: 0;
+            padding: 1rem;
+            color: #333;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Der Logout-Link im Dropdown mit grünem Hintergrund */
+        .profile-dropdown a {
+            display: block;
+            padding: 0.7rem 1rem;
+            color: white;
+            background: #70e2cf;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        /* Wenn man mit der Maus über den Logout-Button fährt ändert dieser die Farbe */
+        .profile-dropdown a:hover {
+            background: #e3b8f6;
+        }
+
+        /* Der Hauptbereich wo der Inhalt angezeigt wird */
+        /* Wird zentriert, hat eine maximale Breite und genug Platz für Inhalte */
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1rem;
+            min-height: 500px;
+        }
+
+        /* Der Bereich für Login und Registrierung */
+        /* Zeigt Formulare zum Einloggen oder ein neues Konto zu erstellen */
+        .auth-container {
+            background: rgb(228, 242, 243);
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            padding: 2rem;
+            max-width: 500px;
+            margin: 3rem auto;
+        }
+
+        /* Die Überschrift "Login" oder "Registrierung" über den Formularen */
+        .auth-container h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        /* Die großen Reiter zum Wechseln zwischen verschiedenen Bereichen */
+        /* Hier kann man zwischen Neuer Eintrag, Einträge, Playlist und Wunschliste wechseln */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Die Buttons für die Reiter haben ein modernes Aussehen */
+        /* Sie zeigen an welcher Reiter aktiv ist durch eine farbige Linie unten */
+        .tab-button {
+            padding: 0.8rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        /* Der aktive Reiter wird in einer anderen Farbe angezeigt */
+        .tab-button.active {
+            color: #a5c4e7;
+            border-bottom-color: #a5c4e7;
+        }
+
+        /* Wenn man mit der Maus über einen Reitername fährt ändert die Farbe */
+        .tab-button:hover {
+            color: #a34ae2;
+        }
+
+        /* Der Inhalt der Reiter ist standardmäßig versteckt */
+        .tab-content {
+            display: none;
+        }
+
+        /* Nur der Inhalt vom aktiven Reiter wird angezeigt */
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Kleinere Reiter innerhalb des Einträge-Reiters */
+        /* Mit diesen kann man zwischen Filme, Serien, Dokumentationen und Sonstiges wechseln */
+        .sub-tabs {
+            display: flex;
+            gap: 0.3rem;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 1rem;
+            margin-left: 1rem;
+        }
+
+        /* Die Buttons für die Unterreiter sind kleiner als die Hauptreiter */
+        /* Sie helfen dabei verschiedene Arten von Einträgen zu organisieren */
+        .sub-tab-button {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #888;
+            font-weight: normal;
+            font-size: 0.9rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        /* Aktiver Unter-Tab wird hervorgehoben */
+        .sub-tab-button.active {
+            color: #70c9ce;
+            border-bottom-color: #70c9ce;
+        }
+
+        /* Hover-Effekt auf Unter-Tab-Buttons */
+        .sub-tab-button:hover {
+            color: #5a9eaf;
+        }
+
+        /* Versteckt Unter-Tab-Inhalte standardmäßig */
+        .sub-tab-content {
+            display: none;
+        }
+
+        /* Zeigt nur den aktiven Unter-Tab-Inhalt */
+        .sub-tab-content.active {
+            display: block;
+        }
+
+        /*  FORMULAR-ELEMENTE  */
+        /* Styling für alle Formulare (Login, Registrierung, Eingabeformular) */
+        form {
+            background: white;
+            padding: 1.2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        /* Beschriftungen für Formularfelder */
+        label {
+            display: block;
+            margin-top: 0.7rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Eingabefelder, Dropdown-Menüs und Textareas */
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.2rem;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        /*  BUTTONS  */
+        /* Primäre Buttons (Speichern, Einloggen, etc.) */
+        button {
+            margin-top: 1rem;
+            padding: 0.6rem 1.2rem;
+            background: #58e8c4;
+            color: rgb(1, 1, 1);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Hover-Effekt für Buttons */
+        button:hover {
+            background: #e3b8f6;
+        }
+
+        /*  EINTRÄGE (Film/Serie/etc. Karten)  */
+        /* Container für jeden Film-/Serieneintrag mit Schatten */
+        .entry {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            box-shadow: 0 0 6px rgba(0,0,0,0.08);
+        }
+
+        /*  STERN-BEWERTUNG (Anzeige)  */
+        /* Zeigt die Sterne in Gelb für Bewertungen an */
+        .stars-display {
+            color: #e5e21e;
+            font-size: 1.3rem;
+        }
+
+        /*  STERN-RATING (Interaktiv)  */
+        /* Container für Stern-Bewertungs-Element (5 Sterne zum Anklicken) */
+        .star-rating {
+            direction: rtl;
+            display: inline-flex;
+            font-size: 2rem;
+        }
+
+        /* Versteckte Radio-Buttons für Star-Rating */
+        .star-rating input {
+            display: none;
+        }
+
+        /* Sterne im Star-Rating-Element */
+        .star-rating label {
+            color: #ccc;
+            cursor: pointer;
+        }
+
+        /* Selektierter Stern wird gelb gefärbt */
+        .star-rating input:checked ~ label {
+            color: #e5db1e;
+        }
+
+        /* Hover-Effekt auf Sterne (färbt alle Sterne von rechts) */
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: #e1e363;
+        }
+
+        /*  FEHLER-MELDUNGEN  */
+        /* Fehlermeldungen in Rot */
+        .error {
+            color: red;
+        }
+
+        /*  AUTHENTIFIZIERUNGS-LINKS  */
+        /* Links zum Wechsel zwischen Login und Registrierung */
+        .auth-link {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        /* Styling für Auth-Links */
+        .auth-link a {
+            color: #a5c4e7;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Hover-Effekt auf Auth-Links */
+        .auth-link a:hover {
+            text-decoration: underline;
+        }
+
+        /*  VERSTECKEN/ANZEIGEN  */
+        /* Versteckt Elemente mit der Klasse 'hidden' */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<!--  HEADER (wird versteckt wenn nicht eingeloggt)  -->
+<!-- Oberer Bereich mit Logo, Titel und Profil-Icon zeigt den Header nach dem Login -->
+<header id="header" class="hidden">
+    <div class="header-left">
+        <img src="TyF Logo.png" alt="TyF Logo">
+        <h1>TyF – Track your Film, Serien und mehr</h1>
+    </div>
+    <div class="profile-section">
+        <div class="profile-icon" onclick="toggleProfileDropdown()">👤</div>
+        <div class="profile-dropdown" id="profileDropdown">
+            <p id="userEmail"></p>
+            <a onclick="logout()">Logout</a>
+        </div>
+    </div>
+</header>
+
+<!-- Login/Registrierung Container -->
+<div id="authContainer" class="container auth-container">
+    <div id="loginDiv">
+        <h2>Login</h2>
+        <form onsubmit="handleLogin(event)">
+            <label>E-Mail</label>
+            <input type="email" id="loginEmail" required>
+
+            <label>PIN (4 Ziffern)</label>
+            <input type="password" id="loginPin" maxlength="4" required>
+
+            <button type="submit">Einloggen</button>
+        </form>
+        <div class="auth-link">
+            Noch kein Konto? <a onclick="switchToRegister()">Jetzt registrieren</a>
+        </div>
+    </div>
+
+    <div id="registerDiv" class="hidden">
+        <h2>Registrierung</h2>
+        <form onsubmit="handleRegister(event)">
+            <label>E-Mail</label>
+            <input type="email" id="registerEmail" required>
+
+            <label>PIN (4 Ziffern)</label>
+            <input type="password" id="registerPin" maxlength="4" required>
+
+            <label>PIN wiederholen</label>
+            <input type="password" id="registerPinConfirm" maxlength="4" required>
+
+            <button type="submit">Registrieren</button>
+        </form>
+        <div class="auth-link">
+            Bereits registriert? <a onclick="switchToLogin()">Zum Login</a>
+        </div>
+    </div>
+</div>
+
+<!-- Hauptinhalt (wird nach Login angezeigt) -->
+<div id="mainContainer" class="hidden">
+    <header id="mainHeader">
+        <div class="header-left">
+            <img src="TyF Logo.png" alt="TyF Logo">
+            <h1>TyF – Track your Film, Serien und mehr</h1>
+        </div>
+        <div class="profile-section">
+            <div class="profile-icon" onclick="toggleProfileDropdown()">👤</div>
+            <div class="profile-dropdown" id="profileDropdown2">
+                <p id="userEmail2"></p>
+                <a onclick="logout()">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'addEntry')">Neuer Eintrag</button>
+            <button class="tab-button" onclick="openTab(event, 'entries')">Einträge</button>
+            <button class="tab-button" onclick="openTab(event, 'playlist')">Playlist</button>
+            <button class="tab-button" onclick="openTab(event, 'wishlist')">Wunschliste</button>
+        </div>
+
+        <!-- Tab: Neuer Eintrag -->
+        <div id="addEntry" class="tab-content active">
+            <h2>Neuen Eintrag hinzufügen</h2>
+            <form onsubmit="handleAddEntry(event)">
+                <label>Titel</label>
+                <input type="text" id="titleInput" required>
+
+                <label>Typ</label>
+                <select id="typeInput" required>
+                    <option value="">-- Bitte wählen --</option>
+                    <option>Film</option>
+                    <option>Serie</option>
+                    <option>Dokumentation</option>
+                    <option>Sonstiges</option>
+                </select>
+
+                <label>Speicherstatus</label>
+                <select id="listTypeInput" required>
+                    <option value="">-- Bitte wählen --</option>
+                    <option value="playlist">Playlist</option>
+                    <option value="wishlist">Wunschliste</option>
+                </select>
+
+                <label>Kategorie</label>
+                <input type="text" id="categoryInput">
+
+                <label>Bewertung</label>
+                <div class="star-rating">
+                    <input type="radio" id="s5" name="rating" value="5"><label for="s5">★</label>
+                    <input type="radio" id="s4" name="rating" value="4"><label for="s4">★</label>
+                    <input type="radio" id="s3" name="rating" value="3"><label for="s3">★</label>
+                    <input type="radio" id="s2" name="rating" value="2"><label for="s2">★</label>
+                    <input type="radio" id="s1" name="rating" value="1" required><label for="s1">★</label>
+                </div>
+
+                <label>Eigene Kritik</label>
+                <textarea id="reviewInput" rows="4"></textarea>
+
+                <button type="submit">Speichern</button>
+            </form>
+        </div>
+
+        <!-- Tab: Einträge (alle gespeicherten Einträge) -->
+        <div id="entries" class="tab-content">
+            <h2>Alle meine Einträge</h2>
+            
+            <!-- Unterreiter für Eintragstypen -->
+            <div class="sub-tabs">
+                <button class="sub-tab-button active" onclick="openSubTab(event, 'entriesFilme')">Filme</button>
+                <button class="sub-tab-button" onclick="openSubTab(event, 'entriesSerien')">Serien</button>
+                <button class="sub-tab-button" onclick="openSubTab(event, 'entriesDoku')">Dokumentationen</button>
+                <button class="sub-tab-button" onclick="openSubTab(event, 'entriesSonstiges')">Sonstiges</button>
+            </div>
+
+            <!-- Unterreiter: Filme -->
+            <div id="entriesFilme" class="sub-tab-content active">
+                <div class="entry">
+                    <strong>Beispiel-Film</strong> (Film) - <span style="color: #4a90e2; font-weight: bold;">Playlist</span><br>
+                    <div class="stars-display">★★★★★</div>
+                    <p>Ein großartiger Film!</p>
+
+                    <h4>Kommentare</h4>
+                    <p><strong>Du:</strong> Sehr gut!</p>
+
+                    <form onsubmit="handleComment(event)">
+                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
+                        <button type="submit">Kommentar speichern</button>
+                    </form>
+                </div>
+
+                <div class="entry">
+                    <strong>Kommender Film</strong> (Film) - <span style="color: #ff9800; font-weight: bold;">Wunschliste</span><br>
+                    <em>Kategorie: Action</em><br>
+                    <div class="stars-display">★★★☆☆</div>
+
+                    <h4>Kommentare</h4>
+                    <p><strong>Du:</strong> Freue mich drauf!</p>
+
+                    <form onsubmit="handleComment(event)">
+                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
+                        <button type="submit">Kommentar speichern</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Unterreiter: Serien -->
+            <div id="entriesSerien" class="sub-tab-content">
+                <p style="text-align: center; color: #999;">Keine Serien hinzugefügt</p>
+            </div>
+
+            <!-- Unterreiter: Dokumentationen -->
+            <div id="entriesDoku" class="sub-tab-content">
+                <p style="text-align: center; color: #999;">Keine Dokumentationen hinzugefügt</p>
+            </div>
+
+            <!-- Unterreiter: Sonstiges -->
+            <div id="entriesSonstiges" class="sub-tab-content">
+                <p style="text-align: center; color: #999;">Keine Einträge hinzugefügt</p>
+            </div>
+        </div>
+
+        <!-- Tab: Playlist -->
+        <div id="playlist" class="tab-content">
+            <h2>Meine Playlist</h2>
+            <div id="playlistContent">
+                <div class="entry">
+                    <strong>Beispiel-Film</strong> (Film)<br>
+                    <div class="stars-display">★★★★★</div>
+                    <p>Ein großartiger Film!</p>
+
+                    <h4>Kommentare</h4>
+                    <p><strong>Du:</strong> Sehr gut!</p>
+
+                    <form onsubmit="handleComment(event)">
+                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
+                        <button type="submit">Kommentar speichern</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Wunschliste -->
+        <div id="wishlist" class="tab-content">
+            <h2>Meine Wunschliste</h2>
+            <div id="wishlistContent">
+                <div class="entry">
+                    <strong>Kommender Film</strong> (Film)<br>
+                    <em>Kategorie: Action</em><br>
+                    <div class="stars-display">★★★☆☆</div>
+
+                    <h4>Kommentare</h4>
+                    <p><strong>Du:</strong> Freue mich drauf!</p>
+
+                    <form onsubmit="handleComment(event)">
+                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
+                        <button type="submit">Kommentar speichern</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Hilfsfunktion zum Wechsel zwischen Login und Registrierung
+    function switchToRegister() {
+        document.getElementById('loginDiv').classList.add('hidden');
+        document.getElementById('registerDiv').classList.remove('hidden');
+    }
+
+    function switchToLogin() {
+        document.getElementById('registerDiv').classList.add('hidden');
+        document.getElementById('loginDiv').classList.remove('hidden');
+    }
+
+    // Login Handler
+    function handleLogin(event) {
+        event.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const pin = document.getElementById('loginPin').value;
+        
+        // Speichern in localStorage (einfache Demo)
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        showMainContent();
+    }
+
+    // Registrierung Handler
+    function handleRegister(event) {
+        event.preventDefault();
+        const email = document.getElementById('registerEmail').value;
+        const pin = document.getElementById('registerPin').value;
+        const pinConfirm = document.getElementById('registerPinConfirm').value;
+        
+        if (pin !== pinConfirm) {
+            alert('PINs stimmen nicht überein!');
+            return;
+        }
+        
+        // Speichern in localStorage (einfache Demo)
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        showMainContent();
+    }
+
+    // Logout Handler
+    function logout() {
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('isLoggedIn');
+        document.getElementById('authContainer').classList.remove('hidden');
+        document.getElementById('mainContainer').classList.add('hidden');
+        document.getElementById('loginDiv').classList.remove('hidden');
+        document.getElementById('registerDiv').classList.add('hidden');
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPin').value = '';
+    }
+
+    // Hauptinhalt anzeigen
+    function showMainContent() {
+        const email = localStorage.getItem('userEmail');
+        document.getElementById('userEmail').textContent = email;
+        document.getElementById('userEmail2').textContent = email;
+        
+        document.getElementById('authContainer').classList.add('hidden');
+        document.getElementById('mainContainer').classList.remove('hidden');
+    }
+
+    // Tab-Wechsel
+    function openTab(event, tabName) {
+        const tabcontents = document.getElementsByClassName('tab-content');
+        for (let i = 0; i < tabcontents.length; i++) {
+            tabcontents[i].classList.remove('active');
+        }
+
+        const tabbuttons = document.getElementsByClassName('tab-button');
+        for (let i = 0; i < tabbuttons.length; i++) {
+            tabbuttons[i].classList.remove('active');
+        }
+
+        document.getElementById(tabName).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    // Unterreiter-Wechsel
+    function openSubTab(event, subTabName) {
+        const subTabcontents = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-content');
+        for (let i = 0; i < subTabcontents.length; i++) {
+            subTabcontents[i].classList.remove('active');
+        }
+
+        const subTabbuttons = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-button');
+        for (let i = 0; i < subTabbuttons.length; i++) {
+            subTabbuttons[i].classList.remove('active');
+        }
+
+        document.getElementById(subTabName).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    // Profile-Dropdown Toggle
+    function toggleProfileDropdown() {
+        const dropdown = document.getElementById('profileDropdown2') || document.getElementById('profileDropdown');
+        dropdown.classList.toggle('show');
+    }
+
+    // Eintrag hinzufügen
+    function handleAddEntry(event) {
+        event.preventDefault();
+        const title = document.getElementById('titleInput').value;
+        const type = document.getElementById('typeInput').value;
+        const listType = document.getElementById('listTypeInput').value;
+        
+        alert(`Eintrag gespeichert: ${title} (${type})`);
+        event.target.reset();
+    }
+
+    // Kommentar hinzufügen
+    function handleComment(event) {
+        event.preventDefault();
+        alert('Kommentar gespeichert!');
+        event.target.reset();
+    }
+
+    // Beim Laden prüfen ob eingeloggt
+    window.addEventListener('load', function() {
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        if (isLoggedIn === 'true') {
+            showMainContent();
+        }
+    });
+
+    // Dropdown schließen wenn außerhalb geklickt wird
+    document.addEventListener('click', function(event) {
+        const profileSection = event.target.closest('.profile-section');
+        if (!profileSection) {
+            const dropdowns = document.querySelectorAll('.profile-dropdown');
+            dropdowns.forEach(dropdown => dropdown.classList.remove('show'));
+        }
+    });
+</script>
+
+</body>
+</html>

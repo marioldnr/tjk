@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import sqlite3
 import hashlib
 import secrets
@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from Datenbank import init_db, get_db_connection, DB_NAME
 
 APP_NAME = "tjf"
-app = Flask(APP_NAME)
+app = Flask(__name__, static_folder="static")
 
 # ---------------- Grundfunktionen ----------------
 def get_db():
@@ -93,7 +93,7 @@ def normalize_playlist(con, benutzer_id: int):
 # ---------------- Basis ----------------
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({"app": APP_NAME, "db": DB_NAME, "status": "running"})
+    return app.send_static_file("TyF.html")
 
 # ---------------- Titel (A) ----------------
 @app.route("/api/titel/add", methods=["POST"])

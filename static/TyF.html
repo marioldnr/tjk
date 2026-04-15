@@ -650,7 +650,7 @@ async function handleRegister(event) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ benutzername, email, pin })
-        });
+        }); /* hier speichert er das wie ein dictionary in der Datenbank */
 
         const data = await res.json();
 
@@ -682,68 +682,66 @@ async function handleRegister(event) {
         alert('Server nicht erreichbar. Läuft Main.py?');
     }
 }
-        
-    
     
 
     // Logout Handler
     function logout() {
         sessionStorage.removeItem('benutzername');
         sessionStorage.removeItem('benutzer_id');
-        sessionStorage.removeItem('isLoggedIn');
-        document.getElementById('authContainer').classList.remove('hidden');
-        document.getElementById('mainContainer').classList.add('hidden');
-        document.getElementById('loginDiv').classList.remove('hidden');
-        document.getElementById('registerDiv').classList.add('hidden');
-        document.getElementById('loginName').value = '';
-        document.getElementById('loginPin').value = '';
+        sessionStorage.removeItem('isLoggedIn'); /* hier logged er aus */
+        document.getElementById('authContainer').classList.remove('hidden'); /* Log in wird angezeigt weil ausgeloggt */
+        document.getElementById('mainContainer').classList.add('hidden'); /* Hauptseite wird nciht angezeigt */
+        document.getElementById('loginDiv').classList.remove('hidden'); /* Log in wird angezeigt */
+        document.getElementById('registerDiv').classList.add('hidden'); /* Registrierung wird versteckt */
+        document.getElementById('loginName').value = ''; /* Eingabefelder leeren */
+        document.getElementById('loginPin').value = ''; 
     }
 
     // Hauptinhalt anzeigen
-    function showMainContent() {
+    function showMainContent() { /* hier zeigt er den Hauptinhalt an wenn eingeloggt ist */
         const name = sessionStorage.getItem('benutzername') || '';
         document.getElementById('userEmail').textContent = name;
         document.getElementById('userEmail2').textContent = name;
         
-        document.getElementById('authContainer').classList.add('hidden');
-        document.getElementById('mainContainer').classList.remove('hidden');
-        ladeUndZeigeListen();
+        document.getElementById('authContainer').classList.add('hidden'); /* Log in wird versteckt */
+        document.getElementById('mainContainer').classList.remove('hidden'); /* Hauptseite wird angezeigt */
+        ladeUndZeigeListen(); /* um funktion anzuzeigen F12 */
     }
 
     // Tab-Wechsel
-    function openTab(event, tabName) {
-        const tabcontents = document.getElementsByClassName('tab-content');
-        for (let i = 0; i < tabcontents.length; i++) {
+    function openTab(event, tabName) { 
+        const tabcontents = document.getElementsByClassName('tab-content'); /* Nimm Inhalte von oben und verarbeitet sie weiter */
+        for (let i = 0; i < tabcontents.length; i++) { /* wenn keine Einträge dann anzeige keine Einträge vorhanden */
             tabcontents[i].classList.remove('active');
         }
 
-        const tabbuttons = document.getElementsByClassName('tab-button');
+        const tabbuttons = document.getElementsByClassName('tab-button'); /* selbe spiel wie oben */
         for (let i = 0; i < tabbuttons.length; i++) {
             tabbuttons[i].classList.remove('active');
         }
-
+/* hier zeigt er den Inhalt von dem Reiter an auf den man geklickt hat und macht Ihn aktiv */    
         document.getElementById(tabName).classList.add('active');
         event.currentTarget.classList.add('active');
     }
 
     // Unterreiter-Wechsel
     function openSubTab(event, subTabName) {
-        const subTabcontents = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-content');
+        const subTabcontents = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-content'); /* hier schließt er den anderen Reiter */
         for (let i = 0; i < subTabcontents.length; i++) {
-            subTabcontents[i].classList.remove('active');
+            subTabcontents[i].classList.remove('active'); /* hier wieder Anzeige keine Einträge vorhanden */
         }
 
-        const subTabbuttons = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-button');
+        const subTabbuttons = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-button'); /* hier schließt er den Button */
         for (let i = 0; i < subTabbuttons.length; i++) {
             subTabbuttons[i].classList.remove('active');
         }
 
-        document.getElementById(subTabName).classList.add('active');
+        document.getElementById(subTabName).classList.add('active'); /* Unterreiter anzeigen */
         event.currentTarget.classList.add('active');
     }
 
     // Profile-Dropdown Toggle
-    function toggleProfileDropdown() {
+    function toggleProfileDropdown() { /* hier nimmt er wieder die infos von oben und verarbeitet sie damit das Dropdown Menü angezeigt wird */
         const dropdown = document.getElementById('profileDropdown2') || document.getElementById('profileDropdown');
         dropdown.classList.toggle('show');
     }
@@ -751,26 +749,26 @@ async function handleRegister(event) {
 // Eintrag hinzufügen (wird jetzt in der Datenbank gespeichert)
 async function handleAddEntry(event) {
   event.preventDefault();
-
+/* hier nimmt er die Informationen von den Eingabefeldern und speichert sie in der Datenbank */
   const benutzer_id = sessionStorage.getItem("benutzer_id");
   if (!benutzer_id) {
     alert("Bitte erst einloggen.");
     return;
   }
 
-  const titel = document.getElementById("titleInput").value.trim();
-  const typ = document.getElementById("typeInput").value;
+  const titel = document.getElementById("titleInput").value.trim(); /* Leerzeichen entfernen */
+  const typ = document.getElementById("typeInput").value;/* hier nimmt er das Feld von dem Dropdown Menü */
   const ziel_liste = document.getElementById("listTypeInput").value; // playlist|wishlist
   const kategorie = document.getElementById("categoryInput").value.trim();
   const kritik = document.getElementById("reviewInput").value.trim();
 
   const ratingEl = document.querySelector('input[name="rating"]:checked');
-  const rating = ratingEl ? ratingEl.value : null;
+  const rating = ratingEl ? ratingEl.value : null; /* hier nimmt er die Bewertung von den Sternen */
 
   const res = await fetch("/api/eintrag/speichern", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    body: JSON.stringify({ /* hier speichert er es in eine Jason */
       benutzer_id: Number(benutzer_id),
       titel,
       typ,
@@ -788,15 +786,16 @@ async function handleAddEntry(event) {
   }
 
   event.target.reset();
-  await ladeUndZeigeListen();
+  await ladeUndZeigeListen(); /* hier lädt er die Listen neu damit der neue Eintrag angezeigt wird */
   alert("Gespeichert!");
 }
 
 // Hilfsfunktion: Sterne anzeigen
-function sterneText(r) {
+/* hier zeigt er die Sterne an - def wie in Python */
+function sterneText(r) { 
   if (!r) return "";
-  r = Number(r);
-  return "★★★★★".slice(0, r) + "☆☆☆☆☆".slice(r);
+  r = Number(r); 
+  return "★★★★★".slice(0, r) + "☆☆☆☆☆".slice(r); 
 }
 
 // Holt alle Einträge aus der DB und zeigt sie an
@@ -811,13 +810,14 @@ async function ladeUndZeigeListen() {
     alert(data.error || "Liste laden fehlgeschlagen");
     return;
   }
-
+/* nimmt daten von oben verarbeitet sie und zeigt sie wie gefordert an */
   const playlistDiv = document.getElementById("playlistContent");
   const wishlistDiv = document.getElementById("wishlistContent");
 
-  playlistDiv.innerHTML = "";
+  playlistDiv.innerHTML = ""; /* doppelte Einträge vermeiden */ 
   wishlistDiv.innerHTML = "";
 
+  /* hier geht er alle Einträge durch und erstellt für jeden Eintrag eine Karte mit den Informationen */
   for (const e of data.items) {
     const card = `
       <div class="entry">
@@ -827,7 +827,7 @@ async function ladeUndZeigeListen() {
         ${e.kritik ? `<p>${e.kritik}</p>` : ""}
       </div>
     `;
-
+/* Hier fügt er in welche Liste der Eintrag kommt - Playlist oder Wunschliste */
     if (e.ziel_liste === "playlist") playlistDiv.insertAdjacentHTML("beforeend", card);
     if (e.ziel_liste === "wishlist") wishlistDiv.insertAdjacentHTML("beforeend", card);
   }

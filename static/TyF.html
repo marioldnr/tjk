@@ -584,46 +584,48 @@
     </div>
 </div>
 
-<script>
+<script> /* JavaScript-Teil für die Umsetzung der Seite */
     // Hilfsfunktion zum Wechsel zwischen Login und Registrierung
     function switchToRegister() {
-        document.getElementById('loginDiv').classList.add('hidden');
-        document.getElementById('registerDiv').classList.remove('hidden');
+        document.getElementById('loginDiv').classList.add('hidden');/* Log in verstecken */
+        document.getElementById('registerDiv').classList.remove('hidden'); /* Registrierung anzeigen */
     }
 
     function switchToLogin() {
-        document.getElementById('registerDiv').classList.add('hidden');
+        document.getElementById('registerDiv').classList.add('hidden'); /* selbe Spiel andersrum */
         document.getElementById('loginDiv').classList.remove('hidden');
     }
 
 // Login Handler (Benutzername + PIN) -> Backend API
 async function handleLogin(event) {
     event.preventDefault();
-
+/* nimm benutzername und pin aus den Eingabefeldern und mach unnötige Leerzeichen weg */
     const benutzername = document.getElementById('loginName').value.trim();
     const pin = document.getElementById('loginPin').value.trim();
 
-    try {
+    /* vergleiche sie mit Datenbank und wenn richtig dann weiter, wenn nicht dann Fehlermeldung */
+    try { 
         const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ benutzername, pin })
         });
 
-        const data = await res.json();
+        const data = await res.json(); /* wartet auf Antwort vom Server dann in JSON umwandeln */
 
         if (!res.ok) {
             alert(data.error || 'Login fehlgeschlagen');
             return;
         }
 
+        /* hier nimmt er sozusagen die Informstionen vom Nutzerund überschreibt diese */
         sessionStorage.setItem('benutzername', benutzername);
         sessionStorage.setItem('benutzer_id', String(data.benutzer_id));
-        sessionStorage.setItem('isLoggedIn', 'true');
+        sessionStorage.setItem('isLoggedIn', 'true'); /* hier ist er eingeloggt */
 
         showMainContent();
     } catch (e) {
-        alert('Server nicht erreichbar. Läuft Main.py?');
+        alert('Server nicht erreichbar. Läuft Main.py?'); /* falls der Server nicht antwortet */
     }
 }
 
@@ -636,6 +638,7 @@ async function handleRegister(event) {
     const pin = document.getElementById('registerPin').value.trim();
     const pinConfirm = document.getElementById('registerPinConfirm').value.trim();
 
+    /* Überprüfen ob die beiden PINs übereinstimmen */
     if (pin !== pinConfirm) {
         alert('PINs stimmen nicht überein!');
         return;

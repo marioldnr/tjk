@@ -1,12 +1,16 @@
+import os
 import sqlite3
 
 DB_NAME = "tjf.db"
+print("DB absolute path:", os.path.abspath(DB_NAME))
 
 def get_db_connection():
     con = sqlite3.connect(DB_NAME)
     con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys = ON;")
+    con.execute("PRAGMA foreign_keys = ON")
     return con
+
+
 
 def init_db():
     con = get_db_connection()
@@ -90,6 +94,52 @@ def init_db():
       FOREIGN KEY (benutzer_id) REFERENCES benutzer(benutzer_id),
       FOREIGN KEY (titel_id)    REFERENCES titel(titel_id),
       UNIQUE (benutzer_id, titel_id)
+    );
+    """)
+
+    con.commit()
+    con.close()
+
+def init_extra_tables():
+    """
+    Zusatztabellen für Playlist/Wunschliste.
+    """
+    con = get_db_connection()
+    cur = con.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS playlist (
+      benutzer_id INTEGER NOT NULL,
+      titel_id INTEGER NOT NULL,
+      position INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (benutzer_id, titel_id),
+      FOREIGN KEY (benutzer_id) REFERENCES benutzer(benutzer_id),
+      FOREIGN KEY (titel_id) REFERENCES titel(titel_id)
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS wishlist_category (
+      category_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      benutzer_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (benutzer_id, name),
+      FOREIGN KEY (benutzer_id) REFERENCES benutzer(benutzer_id)
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS wishlist_item (
+      benutzer_id INTEGER NOT NULL,
+      titel_id INTEGER NOT NULL,
+      category_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (benutzer_id, titel_id),
+      FOREIGN KEY (benutzer_id) REFERENCES benutzer(benutzer_id),
+      FOREIGN KEY (titel_id) REFERENCES titel(titel_id),
+      FOREIGN KEY (category_id) REFERENCES wishlist_category(category_id)
     );
     """)
 

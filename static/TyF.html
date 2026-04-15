@@ -383,9 +383,8 @@
     <div id="loginDiv">
         <h2>Login</h2>
         <form onsubmit="handleLogin(event)">
-            <label>E-Mail</label>
-            <input type="email" id="loginEmail" required>
-
+            <label>Benutzername</label>
+            <input type="text" id="loginName" required>
             <label>PIN (4 Ziffern)</label>
             <input type="password" id="loginPin" maxlength="4" required>
 
@@ -399,7 +398,9 @@
     <div id="registerDiv" class="hidden">
         <h2>Registrierung</h2>
         <form onsubmit="handleRegister(event)">
-            <label>E-Mail</label>
+            <label>Benutzername</label>
+            <input type="text" id="registerName" required>
+           <label>E-Mail</label>
             <input type="email" id="registerEmail" required>
 
             <label>PIN (4 Ziffern)</label>
@@ -595,58 +596,115 @@
         document.getElementById('loginDiv').classList.remove('hidden');
     }
 
-    // Login Handler
-    function handleLogin(event) {
-        event.preventDefault();
-        const email = document.getElementById('loginEmail').value;
-        const pin = document.getElementById('loginPin').value;
-        
-        // Speichern in localStorage (einfache Demo)
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('isLoggedIn', 'true');
-        
-        showMainContent();
-    }
+// Login Handler (Benutzername + PIN) -> Backend API
+async function handleLogin(event) {
+    event.preventDefault();
 
-    // Registrierung Handler
-    function handleRegister(event) {
-        event.preventDefault();
-        const email = document.getElementById('registerEmail').value;
-        const pin = document.getElementById('registerPin').value;
-        const pinConfirm = document.getElementById('registerPinConfirm').value;
-        
-        if (pin !== pinConfirm) {
-            alert('PINs stimmen nicht überein!');
+    const benutzername = document.getElementById('loginName').value.trim();
+    const pin = document.getElementById('loginPin').value.trim();
+
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ benutzername, pin })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error || 'Login fehlgeschlagen');
             return;
         }
-        
-        // Speichern in localStorage (einfache Demo)
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('isLoggedIn', 'true');
-        
+
+        sessionStorage.setItem('benutzername', benutzername);
+        sessionStorage.setItem('benutzer_id', String(data.benutzer_id));
+        sessionStorage.setItem('isLoggedIn', 'true');
+
         showMainContent();
+    } catch (e) {
+        alert('Server nicht erreichbar. Läuft Main.py?');
     }
+}
+
+    // Registrierung Handler (Benutzername + Email + PIN) -> Backend API
+async function handleRegister(event) {
+    event.preventDefault();
+
+    const benutzername = document.getElementById('registerName').value.trim();
+    const email = document.getElementById('registerEmail').value.trim();
+    const pin = document.getElementById('registerPin').value.trim();
+    const pinConfirm = document.getElementById('registerPinConfirm').value.trim();
+
+    if (pin !== pinConfirm) {
+        alert('PINs stimmen nicht überein!');
+        return;
+    }
+
+    try {
+        // 1) registrieren
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ benutzername, email, pin })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error || 'Registrierung fehlgeschlagen');
+            return;
+        }
+
+        // 2) direkt danach einloggen
+        const loginRes = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ benutzername, pin })
+        });
+
+        const loginData = await loginRes.json();
+
+        if (!loginRes.ok) {
+            alert(loginData.error || 'Login nach Registrierung fehlgeschlagen');
+            return;
+        }
+
+        sessionStorage.setItem('benutzername', benutzername);
+        sessionStorage.setItem('benutzer_id', String(loginData.benutzer_id));
+        sessionStorage.setItem('isLoggedIn', 'true');
+
+        showMainContent();
+    } catch (e) {
+        alert('Server nicht erreichbar. Läuft Main.py?');
+    }
+}
+        
+    
+    
 
     // Logout Handler
     function logout() {
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('benutzername');
+        sessionStorage.removeItem('benutzer_id');
+        sessionStorage.removeItem('isLoggedIn');
         document.getElementById('authContainer').classList.remove('hidden');
         document.getElementById('mainContainer').classList.add('hidden');
         document.getElementById('loginDiv').classList.remove('hidden');
         document.getElementById('registerDiv').classList.add('hidden');
-        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginName').value = '';
         document.getElementById('loginPin').value = '';
     }
 
     // Hauptinhalt anzeigen
     function showMainContent() {
-        const email = localStorage.getItem('userEmail');
-        document.getElementById('userEmail').textContent = email;
-        document.getElementById('userEmail2').textContent = email;
+        const name = sessionStorage.getItem('benutzername') || '';
+        document.getElementById('userEmail').textContent = name;
+        document.getElementById('userEmail2').textContent = name;
         
         document.getElementById('authContainer').classList.add('hidden');
         document.getElementById('mainContainer').classList.remove('hidden');
+        ladeUndZeigeListen();
     }
 
     // Tab-Wechsel
@@ -687,16 +745,90 @@
         dropdown.classList.toggle('show');
     }
 
-    // Eintrag hinzufügen
-    function handleAddEntry(event) {
-        event.preventDefault();
-        const title = document.getElementById('titleInput').value;
-        const type = document.getElementById('typeInput').value;
-        const listType = document.getElementById('listTypeInput').value;
-        
-        alert(`Eintrag gespeichert: ${title} (${type})`);
-        event.target.reset();
-    }
+// Eintrag hinzufügen (wird jetzt in der Datenbank gespeichert)
+async function handleAddEntry(event) {
+  event.preventDefault();
+
+  const benutzer_id = sessionStorage.getItem("benutzer_id");
+  if (!benutzer_id) {
+    alert("Bitte erst einloggen.");
+    return;
+  }
+
+  const titel = document.getElementById("titleInput").value.trim();
+  const typ = document.getElementById("typeInput").value;
+  const ziel_liste = document.getElementById("listTypeInput").value; // playlist|wishlist
+  const kategorie = document.getElementById("categoryInput").value.trim();
+  const kritik = document.getElementById("reviewInput").value.trim();
+
+  const ratingEl = document.querySelector('input[name="rating"]:checked');
+  const rating = ratingEl ? ratingEl.value : null;
+
+  const res = await fetch("/api/eintrag/speichern", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      benutzer_id: Number(benutzer_id),
+      titel,
+      typ,
+      ziel_liste,
+      kategorie,
+      rating,
+      kritik
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data.error || "Speichern fehlgeschlagen");
+    return;
+  }
+
+  event.target.reset();
+  await ladeUndZeigeListen();
+  alert("Gespeichert!");
+}
+
+// Hilfsfunktion: Sterne anzeigen
+function sterneText(r) {
+  if (!r) return "";
+  r = Number(r);
+  return "★★★★★".slice(0, r) + "☆☆☆☆☆".slice(r);
+}
+
+// Holt alle Einträge aus der DB und zeigt sie an
+async function ladeUndZeigeListen() {
+  const benutzer_id = sessionStorage.getItem("benutzer_id");
+  if (!benutzer_id) return;
+
+  const res = await fetch(`/api/eintrag/liste?benutzer_id=${encodeURIComponent(benutzer_id)}`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.error || "Liste laden fehlgeschlagen");
+    return;
+  }
+
+  const playlistDiv = document.getElementById("playlistContent");
+  const wishlistDiv = document.getElementById("wishlistContent");
+
+  playlistDiv.innerHTML = "";
+  wishlistDiv.innerHTML = "";
+
+  for (const e of data.items) {
+    const card = `
+      <div class="entry">
+        <strong>${e.titel}</strong> (${e.typ})<br>
+        ${e.kategorie ? `<em>Kategorie: ${e.kategorie}</em><br>` : ""}
+        ${e.rating ? `<div class="stars-display">${sterneText(e.rating)}</div>` : ""}
+        ${e.kritik ? `<p>${e.kritik}</p>` : ""}
+      </div>
+    `;
+
+    if (e.ziel_liste === "playlist") playlistDiv.insertAdjacentHTML("beforeend", card);
+    if (e.ziel_liste === "wishlist") wishlistDiv.insertAdjacentHTML("beforeend", card);
+  }
+}
 
     // Kommentar hinzufügen
     function handleComment(event) {
@@ -707,7 +839,7 @@
 
     // Beim Laden prüfen ob eingeloggt
     window.addEventListener('load', function() {
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
         if (isLoggedIn === 'true') {
             showMainContent();
         }

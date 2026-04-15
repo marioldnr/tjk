@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session
 import sqlite3
 import hashlib
 import secrets
@@ -8,7 +8,11 @@ from Datenbank import init_db, get_db_connection, DB_NAME
 
 APP_NAME = "tjf"
 app = Flask(__name__, static_folder="static")
-
+app.secret_key = secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 
 # ---------------- Grundfunktionen ----------------
 def get_db():
@@ -192,7 +196,9 @@ def api_eintrag_speichern():
     """
     data = request.get_json(silent=True) or {}
 
-    benutzer_id = data.get("benutzer_id")
+    benutzer_id = session.get("benutzer_id")
+    if not benutzer_id:
+        return jsonify({"error": "nicht eingeloggt"}), 401
     titel = (data.get("titel") or "").strip()
     typ = (data.get("typ") or "").strip()
     ziel_liste = (data.get("ziel_liste") or "").strip()  # "playlist" oder "wishlist"
@@ -324,9 +330,9 @@ def api_eintrag_liste():
     """
     Liefert alle Einträge eines Benutzers (für Playlist + Wunschliste Anzeige).
     """
-    benutzer_id = request.args.get("benutzer_id", type=int)
+    benutzer_id = session.get("benutzer_id")
     if not benutzer_id:
-        return jsonify({"error": "benutzer_id fehlt"}), 400
+        return jsonify({"error": "nicht eingeloggt"}), 401
 
     con = get_db()
     cur = con.cursor()
@@ -437,6 +443,7 @@ def login():
         except ValueError:
             pass
 
+    # PIN prüfen
     if hash_text(pin) != row["pin_hash"]:
         attempts = int(row["failed_login_attempts"] or 0) + 1
         if attempts >= 5:
@@ -454,13 +461,21 @@ def login():
         con.close()
         return jsonify({"error": "Falscher PIN"}), 401
 
+    # Login erfolgreich: Counter/Sperre zurücksetzen
     cur.execute(
         "UPDATE benutzer SET failed_login_attempts = 0, lock_until = NULL WHERE benutzer_id = ?",
         (row["benutzer_id"],),
     )
     con.commit()
     con.close()
+
+    # Session neu aufsetzen
+    session.clear()
+    session["benutzer_id"] = row["benutzer_id"]
+    session["benutzername"] = benutzername
+
     return jsonify({"ok": True, "benutzer_id": row["benutzer_id"]})
+    
 
 @app.route("/api/pin/change", methods=["POST"])
 def change_pin():
@@ -904,6 +919,11 @@ def comment_delete():
     cur.execute("DELETE FROM kritik WHERE benutzer_id = ? AND titel_id = ?", (benutzer_id, titel_id))
     con.commit()
     con.close()
+    return jsonify({"ok": True})
+
+@app.route("/api/logout", methods=["POST"])
+def api_logout():
+    session.clear()
     return jsonify({"ok": True})
 
 if __name__ == "__main__":

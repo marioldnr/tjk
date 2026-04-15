@@ -749,11 +749,7 @@ async function handleRegister(event) {
 async function handleAddEntry(event) {
   event.preventDefault();
 
-  const benutzer_id = sessionStorage.getItem("benutzer_id");
-  if (!benutzer_id) {
-    alert("Bitte erst einloggen.");
-    return;
-  }
+
 
   const titel = document.getElementById("titleInput").value.trim();
   const typ = document.getElementById("typeInput").value;
@@ -768,7 +764,6 @@ async function handleAddEntry(event) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      benutzer_id: Number(benutzer_id),
       titel,
       typ,
       ziel_liste,
@@ -798,10 +793,9 @@ function sterneText(r) {
 
 // Holt alle Einträge aus der DB und zeigt sie an
 async function ladeUndZeigeListen() {
-  const benutzer_id = sessionStorage.getItem("benutzer_id");
-  if (!benutzer_id) return;
+  
 
-  const res = await fetch(`/api/eintrag/liste?benutzer_id=${encodeURIComponent(benutzer_id)}`);
+  const res = await fetch(`/api/eintrag/liste`);
   const data = await res.json();
 
   if (!res.ok) {

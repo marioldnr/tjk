@@ -400,7 +400,7 @@
         <form onsubmit="handleRegister(event)">
             <label>Benutzername</label>
             <input type="text" id="registerName" required>
-           <label>E-Mail</label>
+            <label>E-Mail</label>
             <input type="email" id="registerEmail" required>
 
             <label>PIN (4 Ziffern)</label>
@@ -502,33 +502,7 @@
 
             <!-- Unterreiter: Filme -->
             <div id="entriesFilme" class="sub-tab-content active">
-                <div class="entry">
-                    <strong>Beispiel-Film</strong> (Film) - <span style="color: #4a90e2; font-weight: bold;">Playlist</span><br>
-                    <div class="stars-display">★★★★★</div>
-                    <p>Ein großartiger Film!</p>
-
-                    <h4>Kommentare</h4>
-                    <p><strong>Du:</strong> Sehr gut!</p>
-
-                    <form onsubmit="handleComment(event)">
-                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
-                        <button type="submit">Kommentar speichern</button>
-                    </form>
-                </div>
-
-                <div class="entry">
-                    <strong>Kommender Film</strong> (Film) - <span style="color: #ff9800; font-weight: bold;">Wunschliste</span><br>
-                    <em>Kategorie: Action</em><br>
-                    <div class="stars-display">★★★☆☆</div>
-
-                    <h4>Kommentare</h4>
-                    <p><strong>Du:</strong> Freue mich drauf!</p>
-
-                    <form onsubmit="handleComment(event)">
-                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
-                        <button type="submit">Kommentar speichern</button>
-                    </form>
-                </div>
+                <p style="text-align: center; color: #999;">Keine Filme hinzugefügt</p>
             </div>
 
             <!-- Unterreiter: Serien -->
@@ -552,40 +526,14 @@
             <h2>Meine Playlist</h2>
             <button onclick="playlistLoeschen()">Komplette Playlist löschen</button>
             <div id="playlistContent"></div>
-            </div>
-                <div class="entry">
-                    <strong>Beispiel-Film</strong> (Film)<br>
-                    <div class="stars-display">★★★★★</div>
-                    <p>Ein großartiger Film!</p>
-
-                    <h4>Kommentare</h4>
-                    <p><strong>Du:</strong> Sehr gut!</p>
-
-                    <form onsubmit="handleComment(event)">
-                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
-                        <button type="submit">Kommentar speichern</button>
-                    </form>
-                </div>
-            </div>
+        </div>
         </div>
 
         <!-- Tab: Wunschliste -->
         <div id="wishlist" class="tab-content">
             <h2>Meine Wunschliste</h2>
             <div id="wishlistContent">
-                <div class="entry">
-                    <strong>Kommender Film</strong> (Film)<br>
-                    <em>Kategorie: Action</em><br>
-                    <div class="stars-display">★★★☆☆</div>
-
-                    <h4>Kommentare</h4>
-                    <p><strong>Du:</strong> Freue mich drauf!</p>
-
-                    <form onsubmit="handleComment(event)">
-                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
-                        <button type="submit">Kommentar speichern</button>
-                    </form>
-                </div>
+                <p style="text-align: center; color: #999;">Keine Einträge in der Wunschliste</p>
             </div>
         </div>
     </div>
@@ -599,44 +547,50 @@ function switchToRegister() {
     document.getElementById('registerDiv').classList.remove('hidden'); // Registrierung anzeigen
 }
 
-function switchToLogin() {
+// Hilfsfunktion zum Wechsel zwischen Login und Registrierung
+function switchToLogin() { 
     document.getElementById('registerDiv').classList.add('hidden'); // Registrierungsbereich verbergen
     document.getElementById('loginDiv').classList.remove('hidden'); // Login anzeigen
 }
 
-// Login Handler
+/*
+Login Handler (Benutzername + PIN) -> Backend API
+*/
 async function handleLogin(event) {
     event.preventDefault();
-    const benutzername = document.getElementById('loginName').value.trim(); // Benutzernamen holen und Leerzeichen entfernen
-    const pin = document.getElementById('loginPin').value.trim(); // PIN ebenfalls bereinigen
+    /* nimm benutzername und pin aus den Eingabefeldern und mach unnötige Leerzeichen weg */
+    const benutzername = document.getElementById('loginName').value.trim(); 
+    const pin = document.getElementById('loginPin').value.trim();
     try {
-        // Login-Daten an das Backend senden
+        /* vergleiche sie mit Datenbank und wenn richtig dann weiter, wenn nicht dann Fehlermeldung */
         const res = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ benutzername, pin })
         });
-        const data = await res.json(); // Antwort als JSON lesen
+        const data = await res.json(); /* wartet auf Antwort vom Server dann in JSON umwandeln */
         if (!res.ok) {
             alert(data.error || 'Login fehlgeschlagen');
             return;
         }
+        /* hier nimmt er sozusagen die Informationen vom Nutzer und überschreibt diese */
         sessionStorage.setItem('benutzername', benutzername);
         sessionStorage.setItem('benutzer_id', String(data.benutzer_id));
-        sessionStorage.setItem('isLoggedIn', 'true'); // Login-Status speichern
+        sessionStorage.setItem('isLoggedIn', 'true'); /* hier ist er eingeloggt */
         showMainContent();
     } catch (e) {
-        alert('Server nicht erreichbar. Läuft Main.py?'); // Fehler bei Verbindung zum Backend
+        alert('Server nicht erreichbar. Läuft Main.py?'); /* falls der Server nicht antwortet */
     }
 }
 
-// Registrierung Handler
+/* Registrierung Handler */
 async function handleRegister(event) {
     event.preventDefault();
     const benutzername = document.getElementById('registerName').value.trim();
     const email = document.getElementById('registerEmail').value.trim();
     const pin = document.getElementById('registerPin').value.trim();
     const pinConfirm = document.getElementById('registerPinConfirm').value.trim();
+    /* Überprüfen ob die beiden PINs übereinstimmen */
     if (pin !== pinConfirm) {
         alert('PINs stimmen nicht überein!');
         return;
@@ -646,8 +600,8 @@ async function handleRegister(event) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ benutzername, email, pin })
-        }); // hier wird das Registrierungs-Objekt als JSON gesendet
-        const data = await res.json(); // Antwort aus der Registrierung auswerten
+        }); /* hier speichert er das wie ein dictionary in der Datenbank */    
+        const data = await res.json();
         if (!res.ok) {
             alert(data.error || 'Registrierung fehlgeschlagen');
             return;
@@ -667,68 +621,69 @@ async function handleRegister(event) {
         sessionStorage.setItem('isLoggedIn', 'true');
         showMainContent();
     } catch (e) {
-        alert('Server nicht erreichbar. Läuft Main.py?');
+        alert('Server nicht erreichbar. Läuft Main.py?'); /* falls der Server nicht antwortet */
     }
 }
     
-// Logout Handler
+/* Logout Handler */
 function logout() {
-    sessionStorage.removeItem('benutzername'); // Benutzername aus Session löschen
-    sessionStorage.removeItem('benutzer_id'); // Nutzer-ID entfernen
-    sessionStorage.removeItem('isLoggedIn'); // Login-Status entfernen
-    document.getElementById('authContainer').classList.remove('hidden'); // Login-Maske wieder anzeigen
-    document.getElementById('mainContainer').classList.add('hidden'); // Hauptseite verstecken
-    document.getElementById('loginDiv').classList.remove('hidden'); // Login-Tab zeigen
-    document.getElementById('registerDiv').classList.add('hidden'); // Registrierungs-Tab verstecken
-    document.getElementById('loginName').value = ''; // Eingabefelder zurücksetzen
+    sessionStorage.removeItem('benutzername'); /* hier logged er aus */      
+    sessionStorage.removeItem('benutzer_id');
+    sessionStorage.removeItem('isLoggedIn');
+    document.getElementById('authContainer').classList.remove('hidden'); /* Log in wird angezeigt weil ausgeloggt */
+    document.getElementById('mainContainer').classList.add('hidden'); /* Hauptseite wird nciht angezeigt */
+    document.getElementById('loginDiv').classList.remove('hidden'); /* Log in wird angezeigt */
+    document.getElementById('registerDiv').classList.add('hidden'); /* Registrierung wird versteckt */
+    document.getElementById('loginName').value = ''; /* Eingabefelder leeren */
     document.getElementById('loginPin').value = '';
 }
 
-// Hauptinhalt anzeigen
-function showMainContent() { // hier zeigt er den Hauptinhalt an wenn eingeloggt ist
+/* Hauptinhalt anzeigen */
+function showMainContent() { /* hier zeigt er den Hauptinhalt an wenn eingeloggt ist */
     const name = sessionStorage.getItem('benutzername') || '';
     document.getElementById('userEmail').textContent = name;
     document.getElementById('userEmail2').textContent = name;
-    document.getElementById('authContainer').classList.add('hidden'); // Login-Bereich verstecken
-    document.getElementById('mainContainer').classList.remove('hidden'); // Hauptbereich anzeigen
-    ladeUndZeigeListen(); // Einträge laden
+    document.getElementById('authContainer').classList.add('hidden'); /* Log in wird versteckt */
+    document.getElementById('mainContainer').classList.remove('hidden'); /* Hauptseite wird angezeigt */
+    ladeUndZeigeListen(); /* um funktion anzuzeigen F12 */
     // ################# NEU/GEÄNDERT #################
     ladePlaylists();
 }
 
-// Tab-Wechsel
-function openTab(event, tabName) { 
-    const tabcontents = document.getElementsByClassName('tab-content'); // Alle Tab-Inhalte holen
-    for (let i = 0; i < tabcontents.length; i++) {
+/* Tab-Wechsel */
+function openTab(event, tabName) {
+    const tabcontents = document.getElementsByClassName('tab-content'); /* Nimm Inhalte von oben und verarbeitet sie weiter */
+    for (let i = 0; i < tabcontents.length; i++) { /* wenn keine Einträge dann anzeige keine Einträge vorhanden */
         tabcontents[i].classList.remove('active');
     }
-    const tabbuttons = document.getElementsByClassName('tab-button'); // Alle Tab-Buttons holen
+    const tabbuttons = document.getElementsByClassName('tab-button'); /* selbe spiel wie oben */
     for (let i = 0; i < tabbuttons.length; i++) {
         tabbuttons[i].classList.remove('active');
     }
     document.getElementById(tabName).classList.add('active');
-    event.currentTarget.classList.add('active'); // Aktiven Tab-Button markieren
+    event.currentTarget.classList.add('active');
 
+    /* hier zeigt er den Inhalt von dem Reiter an auf den man geklickt hat und macht Ihn aktiv */
     // ################# NEU/GEÄNDERT #################
     if (tabName === "playlist") ladePlaylists();
 }
 
-// Unterreiter-Wechsel
+/* Unterreiter-Wechsel */
 function openSubTab(event, subTabName) {
-    const subTabcontents = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-content'); // Untertabs für aktuellen Tab holen
+    const subTabcontents = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-content'); /* hier schließt er den anderen Reiter */
     for (let i = 0; i < subTabcontents.length; i++) {
-        subTabcontents[i].classList.remove('active'); // Alle Untertabs inaktiv setzen
+        subTabcontents[i].classList.remove('active'); /* hier wieder Anzeige keine Einträge vorhanden */
     }
-    const subTabbuttons = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-button'); // Untertab-Buttons holen
+    const subTabbuttons = event.currentTarget.closest('.tab-content').querySelectorAll('.sub-tab-button'); /* hier schließt er den Button */
     for (let i = 0; i < subTabbuttons.length; i++) {
         subTabbuttons[i].classList.remove('active');
     }
-    document.getElementById(subTabName).classList.add('active'); // Gewählten Untertab anzeigen
+    document.getElementById(subTabName).classList.add('active'); /* Unterreiter anzeigen */
     event.currentTarget.classList.add('active');
 }
 
-// Profile-Dropdown Toggle
-function toggleProfileDropdown() { // Profil-Dropdown umschalten
+/* Profile-Dropdown Toggle */
+function toggleProfileDropdown() { /* hier nimmt er wieder die infos von oben und verarbeitet sie damit das Dropdown Menü angezeigt wird */
     const dropdown = document.getElementById('profileDropdown2') || document.getElementById('profileDropdown');
     dropdown.classList.toggle('show');
 }
@@ -871,18 +826,18 @@ async function eintragAusPlaylistEntfernen(titel_id) {
 // Eintrag hinzufügen (bleibt – Wunschliste/Playlist im alten Stil)
 async function handleAddEntry(event) {
   event.preventDefault();
-  const benutzer_id = sessionStorage.getItem("benutzer_id"); // Benutzer-ID aus der Session holen
+  const benutzer_id = sessionStorage.getItem("benutzer_id"); /* Benutzer-ID aus der Session holen */
   if (!benutzer_id) {
     alert("Bitte erst einloggen.");
     return;
   }
-  const titel = document.getElementById("titleInput").value.trim(); // Titel eingeben und Leerzeichen entfernen
-  const typ = document.getElementById("typeInput").value; // Typ des Eintrags (Film, Serie, ...)
+  const titel = document.getElementById("titleInput").value.trim(); /* Leerzeichen entfernen */
+  const typ = document.getElementById("typeInput").value;/* hier nimmt er das Feld von dem Dropdown Menü */
   const ziel_liste = document.getElementById("listTypeInput").value; // playlist|wishlist
-  const kategorie = document.getElementById("categoryInput").value.trim(); // Kategorie optional
-  const kritik = document.getElementById("reviewInput").value.trim(); // Bewertungstext
-  const ratingEl = document.querySelector('input[name="rating"]:checked');
-  const rating = ratingEl ? ratingEl.value : null; // Sternebewertung auslesen
+  const kategorie = document.getElementById("categoryInput").value.trim();     
+  const kritik = document.getElementById("reviewInput").value.trim();
+  const ratingEl = document.querySelector('input[name="rating"]:checked');     
+  const rating = ratingEl ? ratingEl.value : null; /* hier nimmt er die Bewertung von den Sternen */
 
   // WENN Ziel-Liste == "playlist" → neue Playlist anlegen
   if (ziel_liste === "playlist") {
@@ -904,7 +859,7 @@ async function handleAddEntry(event) {
     const res = await fetch("/api/eintrag/speichern", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ // Daten als JSON zum Server senden
+      body: JSON.stringify({ /* hier speichert er es in eine Jason */
         benutzer_id: Number(benutzer_id),
         titel,
         typ,
@@ -920,32 +875,34 @@ async function handleAddEntry(event) {
       return;
     }
     event.target.reset();
-    await ladeUndZeigeListen(); // Listen neu laden, damit neuer Eintrag sichtbar wird
+    await ladeUndZeigeListen(); /* hier lädt er die Listen neu damit der neue Eintrag angezeigt wird */
     ladePlaylists();
     alert("Gespeichert!");
   }
 }
 
-// Hilfsfunktion: Sterne anzeigen
-function sterneText(r) { // Hier wird die Sternebewertung formatiert
+/* Hilfsfunktion: Sterne anzeigen */
+function sterneText(r) {
   if (!r) return "";
-  r = Number(r); 
-  return "★★★★★".slice(0, r) + "☆☆☆☆☆".slice(r); 
+  r = Number(r);
+  return "★★★★★".slice(0, r) + "☆☆☆☆☆".slice(r);
 }
 
-// Holt alle Einträge – bleibt wie gehabt, nutzt weiterhin den /api/eintrag/liste-Endpunkt für die allgemeine Liste/Wunschliste
+/* Holt alle Einträge aus der DB und zeigt sie an */
 async function ladeUndZeigeListen() {
-  const res = await fetch(`/api/eintrag/liste`); // Einträge aus der Datenbank laden
+  const res = await fetch(`/api/eintrag/liste`);
   const data = await res.json();
   if (!res.ok) {
-    alert(data.error || "Liste laden fehlgeschlagen"); // Fehlermeldung bei Ladefehler
+    alert(data.error || "Liste laden fehlgeschlagen");
     return;
   }
+  /* nimmt daten von oben verarbeitet sie und zeigt sie wie gefordert an */
   const playlistDiv = document.getElementById("playlistContent");
   const wishlistDiv = document.getElementById("wishlistContent");
   // Für die neue Tabs: playlistDiv wird JETZT vom Multi-Playlist Bereich gemanagt!
   // Wir schreiben nur noch die Wunschliste voll:
   wishlistDiv.innerHTML = "";
+  /* hier geht er alle Einträge durch und erstellt für jeden Eintrag eine Karte mit den Informationen */
   for (const e of data.items) {
     if (e.ziel_liste !== "wishlist") continue;
     const card = `

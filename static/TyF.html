@@ -524,7 +524,7 @@
         <!-- Tab: Playlist -->
         <div id="playlist" class="tab-content">
             <h2>Meine Playlist</h2>
-            <button onclick="playlistLoeschen()">Komplette Playlist löschen</button>
+            <div id="playlistDeleteBtnContainer"></div>
             <div id="playlistContent"></div>
         </div>
         </div>
@@ -753,6 +753,13 @@ async function ladePlaylists() {
         aktuellePlaylistId = null;
     }
     zeigePlaylistsUI();
+    // Button nur anzeigen, wenn Playlists vorhanden
+    const btnContainer = document.getElementById("playlistDeleteBtnContainer");
+    if (allePlaylists.length > 0) {
+        btnContainer.innerHTML = '<button onclick="playlistLoeschen()">Komplette Playlist löschen</button>';
+    } else {
+        btnContainer.innerHTML = '';
+    }
     if (aktuellePlaylistId) ladeAktuellePlaylist();
     else document.getElementById("playlistContent").innerHTML = "<i>Keine Playlist vorhanden.</i>";
 }

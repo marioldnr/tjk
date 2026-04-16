@@ -350,7 +350,7 @@ def api_eintrag_speichern():
             ON CONFLICT(benutzer_id, titel_id)
             DO UPDATE SET text = excluded.text, datum = datetime('now')
             """,
-            (benutzer_id, titel_id, kritik_text),
+#            (benutzer_id, titel_id, kritik_text),
         )
 
     # 5) Wunschliste: Kategorie optional

@@ -358,6 +358,131 @@
         .hidden {
             display: none;
         }
+
+        /*  MODAL-FENSTER  */
+        /* Modal-Container für Eintrag-Details */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        /* Modal sichtbar machen */
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Modal-Inhalt */
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* Modal-Header mit Close-Button */
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 1rem;
+        }
+
+        /* Modal-Titel */
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        /* Close-Button (X) */
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: auto;
+            margin-top: 0;
+        }
+
+        .modal-close:hover {
+            color: #333;
+            background: none;
+        }
+
+        /* Modal-Body mit Eintrag-Details */
+        .modal-body {
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        /* Modal-Footer mit Aktions-Buttons */
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding-top: 1.5rem;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        /* Buttons im Modal */
+        .modal-footer button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        /* Löschen-Button (rot) */
+        .btn-delete {
+            background: #ff6b6b !important;
+        }
+
+        .btn-delete:hover {
+            background: #ee5a52 !important;
+        }
+
+        /* Bearbeiten-Button (orange) */
+        .btn-edit {
+            background: #ffa94d !important;
+        }
+
+        .btn-edit:hover {
+            background: #ff922b !important;
+        }
+
+        /* Schließen-Button */
+        .btn-close {
+            background: #ccc !important;
+        }
+
+        .btn-close:hover {
+            background: #aaa !important;
+        }
+
+        /* Eintrag als klickbar markieren */
+        .entry.clickable {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .entry.clickable:hover {
+            box-shadow: 0 0 15px rgba(88, 232, 196, 0.4);
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -457,11 +582,16 @@
                     <option>Sonstiges</option>
                 </select>
 
-                <label>Speicherstatus</label>
-                <select id="listTypeInput" required>
+                <label>Ziel</label>
+                <select id="zielListeInput" required onchange="aktualisierePlaylistDropdown()">
                     <option value="">-- Bitte wählen --</option>
-                    <option value="playlist">Playlist</option>
-                    <option value="wishlist">Wunschliste</option>
+                    <option value="playlist">Zu Playlist hinzufügen</option>
+                    <option value="wishlist">Zur Wunschliste hinzufügen</option>
+                </select>
+
+                <label id="playlistLabel" style="display:none;">Playlist</label>
+                <select id="playlistInput" style="display:none;" required>
+                    <option value="">-- Bitte wählen --</option>
                 </select>
 
                 <label>Kategorie</label>
@@ -524,16 +654,30 @@
         <!-- Tab: Playlist -->
         <div id="playlist" class="tab-content">
             <h2>Meine Playlist</h2>
-            <button onclick="playlistLoeschen()">Komplette Playlist löschen</button>
             <div id="playlistContent"></div>
-        </div>
         </div>
 
         <!-- Tab: Wunschliste -->
         <div id="wishlist" class="tab-content">
-            <h2>Meine Wunschliste</h2>
-            <div id="wishlistContent">
-                <p style="text-align: center; color: #999;">Keine Einträge in der Wunschliste</p>
+            <h2>Deine Wunschliste</h2>
+            <div id="wishlistContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal für Eintrag-Details -->
+    <div id="entryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Eintrag Details</h3>
+                <button class="modal-close" onclick="closeEntryModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Eintrag-Details werden hier eingefügt -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-edit" onclick="bearbeiteEintrag()">Bearbeiten</button>
+                <button class="btn-delete" onclick="loescheEintrag()">Löschen</button>
+                <button class="btn-close" onclick="closeEntryModal()">Schließen</button>
             </div>
         </div>
     </div>
@@ -666,6 +810,9 @@ function openTab(event, tabName) {
     /* hier zeigt er den Inhalt von dem Reiter an auf den man geklickt hat und macht Ihn aktiv */
     // ################# NEU/GEÄNDERT #################
     if (tabName === "playlist") ladePlaylists();
+    if (tabName === "wishlist") ladeUndZeigeListen();
+    if (tabName === "entries") ladeAlleEintraege();
+    if (tabName === "addEntry") ladePlaylistsInDropdown();
 }
 
 /* Unterreiter-Wechsel */
@@ -681,6 +828,72 @@ function openSubTab(event, subTabName) {
     document.getElementById(subTabName).classList.add('active'); /* Unterreiter anzeigen */
     event.currentTarget.classList.add('active');
 }
+
+// ################# MODAL FÜR EINTRÄGE #################
+let aktuellerEintrag = null; // Speichert den aktuell angezeigten Eintrag
+
+// Modal öffnen und Eintrag-Details anzeigen
+function zeigeEntragModal(eintrag, source = 'wishlist') {
+    aktuellerEintrag = { ...eintrag, source };
+    
+    document.getElementById('modalTitle').textContent = eintrag.titel || eintrag.name;
+    
+    let html = `
+        <p><strong>Titel:</strong> ${eintrag.titel || eintrag.name}</p>
+        <p><strong>Typ:</strong> ${eintrag.typ}</p>
+        <p><strong>Kategorie:</strong> ${eintrag.kategorie || eintrag.genre || 'Nicht angegeben'}</p>
+    `;
+    
+    if (eintrag.rating) {
+        html += `<p><strong>Bewertung:</strong> ${sterneText(eintrag.rating)}</p>`;
+    }
+    
+    if (eintrag.kritik) {
+        html += `<p><strong>Kritik/Notiz:</strong> ${eintrag.kritik}</p>`;
+    }
+    
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('entryModal').classList.add('show');
+}
+
+// Modal schließen
+function closeEntryModal() {
+    document.getElementById('entryModal').classList.remove('show');
+    aktuellerEintrag = null;
+}
+
+// Eintrag bearbeiten
+function bearbeiteEintrag() {
+    if (!aktuellerEintrag) return;
+    
+    const neueTitel = prompt('Neuer Titel:', aktuellerEintrag.titel || aktuellerEintrag.name);
+    if (!neueTitel) return;
+    
+    const neueKritik = prompt('Neue Kritik:', aktuellerEintrag.kritik || '');
+    
+    // Hier könnten API-Aufrufe zum Bearbeiten implementiert werden
+    alert('Eintrag bearbeitet (funktionalität muss noch mit Backend implementiert werden)');
+    closeEntryModal();
+}
+
+// Eintrag löschen
+function loescheEintrag() {
+    if (!aktuellerEintrag) return;
+    
+    if (!confirm('Diesen Eintrag wirklich löschen?')) return;
+    
+    // Hier könnten API-Aufrufe zum Löschen implementiert werden
+    alert('Eintrag gelöscht (funktionalität muss noch mit Backend implementiert werden)');
+    closeEntryModal();
+}
+
+// Modal schließen wenn außerhalb geklickt wird
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('entryModal');
+    if (event.target === modal) {
+        closeEntryModal();
+    }
+});
 
 /* Profile-Dropdown Toggle */
 function toggleProfileDropdown() { /* hier nimmt er wieder die infos von oben und verarbeitet sie damit das Dropdown Menü angezeigt wird */
@@ -769,13 +982,35 @@ function zeigePlaylistsUI() {
     html += '</select> ';
     html += `<button onclick="neuePlaylistAnlegen()">+</button> `;
     if (allePlaylists.length) {
-        html += `<button onclick="playlistUmbenennen()">Umbenennen</button> `;
-        html += `<button onclick="playlistLoeschen()">Löschen</button>`;
-    } else {
-        html += '<button onclick="playlistLoeschen()">Löschen</button>';
+        html += `<button onclick="bearbeitePlaylist()">Bearbeiten</button>`;
     }
     html += '</div>';
     div.innerHTML = html;
+}
+
+async function bearbeitePlaylist() {
+    if (!aktuellePlaylistId) return;
+    const action = prompt("Was möchtest du tun?\n1. Umbenennen\n2. Löschen\nGib 1 oder 2 ein:");
+    if (action === "1") {
+        const neueName = prompt("Neuer Name für Playlist?");
+        if (!neueName) return;
+        const res = await fetch("/api/playlists/rename", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playlist_id: aktuellePlaylistId, name: neueName })
+        });
+        await ladePlaylists();
+        alert("Playlist umbenannt.");
+    } else if (action === "2") {
+        if (!confirm("Wirklich diese Playlist löschen?")) return;
+        const res = await fetch("/api/playlists/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playlist_id: aktuellePlaylistId })
+        });
+        await ladePlaylists();
+        alert("Playlist gelöscht.");
+    }
 }
 
 function playlistSelectWechsel(id) {
@@ -794,16 +1029,53 @@ async function ladeAktuellePlaylist() {
         return;
     }
     let html = div.innerHTML; // Buttons/Dropdown oben behalten
-    if (data.items && data.items.length > 0) {
-        for (const eintrag of data.items) {
-            html += `
-                <div class="entry">
-                    <strong>${eintrag.name}</strong> (${eintrag.typ})<br>
-                    ${eintrag.genre ? `<em>Genre: ${eintrag.genre}</em><br>` : ""}
-                    ${eintrag.erscheinungsjahr ? `<span>Jahr: ${eintrag.erscheinungsjahr}</span><br>` : ""}
-                    <button onclick="eintragAusPlaylistEntfernen(${eintrag.titel_id})">Entfernen</button>
-                </div>
-            `;
+    
+    // Überprüfe ob data.items existiert und nicht leer ist
+    const entries = (data.items && Array.isArray(data.items)) ? data.items : [];
+    
+    // Kategorie gruppieren wenn vorhanden
+    const kategorien = {};
+    let ohneKategorie = [];
+    
+    for (const eintrag of entries) {
+        if (eintrag.kategorie || eintrag.genre) {
+            const kat = eintrag.kategorie || eintrag.genre;
+            if (!kategorien[kat]) kategorien[kat] = [];
+            kategorien[kat].push(eintrag);
+        } else {
+            ohneKategorie.push(eintrag);
+        }
+    }
+    
+    if (entries.length > 0) {
+        // Einträge mit Kategorie-Überschriften anzeigen
+        for (const [kategorie, eintraege] of Object.entries(kategorien)) {
+            html += `<h3 style="margin: 1.5rem 0 0.5rem 0; color: #58e8c4; border-bottom: 2px solid #58e8c4; padding-bottom: 0.5rem;">${kategorie}</h3>`;
+            for (const eintrag of eintraege) {
+                html += `
+                    <div class="entry clickable" onclick="zeigeEntragModal({titel: '${(eintrag.name || eintrag.titel).replace(/'/g, "\\\\'")}'  , typ: '${eintrag.typ}', kategorie: '${eintrag.kategorie || eintrag.genre || ''}', rating: ${eintrag.rating || 0}, kritik: '${(eintrag.kritik || '').replace(/'/g, "\\\\'")}'}, 'playlist')" style="cursor: pointer;">
+                        <strong>${eintrag.name}</strong> (${eintrag.typ})<br>
+                        ${eintrag.erscheinungsjahr ? `<span>Jahr: ${eintrag.erscheinungsjahr}</span><br>` : ""}
+                        ${eintrag.rating ? `<span>${sterneText(eintrag.rating)}</span><br>` : ""}
+                        <button onclick="event.stopPropagation(); eintragAusPlaylistEntfernen(${eintrag.titel_id})">Entfernen</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Einträge ohne Kategorie anzeigen
+        if (ohneKategorie.length > 0) {
+            html += `<h3 style="margin: 1.5rem 0 0.5rem 0; color: #58e8c4; border-bottom: 2px solid #58e8c4; padding-bottom: 0.5rem;">Sonstige</h3>`;
+            for (const eintrag of ohneKategorie) {
+                html += `
+                    <div class="entry clickable" onclick="zeigeEntragModal({titel: '${(eintrag.name || eintrag.titel).replace(/'/g, "\\\\'")}'  , typ: '${eintrag.typ}', kategorie: '${eintrag.kategorie || eintrag.genre || ''}', rating: ${eintrag.rating || 0}, kritik: '${(eintrag.kritik || '').replace(/'/g, "\\\\'")}'}, 'playlist')" style="cursor: pointer;">
+                        <strong>${eintrag.name}</strong> (${eintrag.typ})<br>
+                        ${eintrag.erscheinungsjahr ? `<span>Jahr: ${eintrag.erscheinungsjahr}</span><br>` : ""}
+                        ${eintrag.rating ? `<span>${sterneText(eintrag.rating)}</span><br>` : ""}
+                        <button onclick="event.stopPropagation(); eintragAusPlaylistEntfernen(${eintrag.titel_id})">Entfernen</button>
+                    </div>
+                `;
+            }
         }
     } else {
         html += "<i>Keine Einträge in der Playlist.</i>";
@@ -825,61 +1097,190 @@ async function eintragAusPlaylistEntfernen(titel_id) {
 
 // ################# ENDE: Multi-Playlist #################
 
-// Eintrag hinzufügen (bleibt – Wunschliste/Playlist im alten Stil)
+// ################# ALLE EINTRÄGE NACH TYP LADEN #################
+async function ladeAlleEintraege() {
+    const benutzer_id = sessionStorage.getItem('benutzer_id');
+    if (!benutzer_id) return;
+
+    try {
+        const res = await fetch(`/api/alle_eintraege?benutzer_id=${benutzer_id}`);
+        const data = await res.json();
+        
+        // Einträge nach Typ sortieren
+        const eintraegeNachTyp = {
+            'Film': [],
+            'Serie': [],
+            'Dokumentation': [],
+            'Sonstiges': []
+        };
+        
+        if (data.items && Array.isArray(data.items)) {
+            for (const eintrag of data.items) {
+                const typ = eintrag.typ || 'Sonstiges';
+                if (eintraegeNachTyp[typ]) {
+                    eintraegeNachTyp[typ].push(eintrag);
+                } else {
+                    eintraegeNachTyp['Sonstiges'].push(eintrag);
+                }
+            }
+        }
+        
+        // Tabs mit Einträgen füllen
+        zeigeEintraegeNachTyp(eintraegeNachTyp);
+        
+    } catch (e) {
+        console.error('Fehler beim Laden der Einträge:', e);
+    }
+}
+
+// Einträge nach Typ in den jeweiligen Tabs anzeigen
+function zeigeEintraegeNachTyp(eintraegeNachTyp) {
+    const typMap = {
+        'Film': 'entriesFilme',
+        'Serie': 'entriesSerien',
+        'Dokumentation': 'entriesDoku',
+        'Sonstiges': 'entriesSonstiges'
+    };
+    
+    for (const [typ, containerId] of Object.entries(typMap)) {
+        const container = document.getElementById(containerId);
+        const eintraege = eintraegeNachTyp[typ] || [];
+        
+        if (eintraege.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: #999;">Keine ${typ.toLowerCase()} hinzugefügt</p>`;
+        } else {
+            let html = '';
+            for (const eintrag of eintraege) {
+                html += `
+                    <div class="entry clickable" onclick="zeigeEntragModal({titel: '${eintrag.titel.replace(/'/g, "\\'")}', typ: '${eintrag.typ}', kategorie: '${eintrag.kategorie || ''}', rating: ${eintrag.rating || 0}, kritik: '${(eintrag.kritik || '').replace(/'/g, "\\'")}'}, 'wishlist')">
+                        <strong>${eintrag.titel}</strong> (${eintrag.typ})<br>
+                        ${eintrag.kategorie ? `<em>Kategorie: ${eintrag.kategorie}</em><br>` : ''}
+                        ${eintrag.rating ? `<span>${sterneText(eintrag.rating)}</span><br>` : ''}
+                        ${eintrag.kritik ? `<p style="font-size: 0.9rem; color: #666; margin: 0.5rem 0 0 0;">${eintrag.kritik}</p>` : ''}
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+    }
+}
+
+// ################# ENDE: ALLE EINTRÄGE NACH TYP #################
+function aktualisierePlaylistDropdown() {
+    const zielListe = document.getElementById('zielListeInput').value;
+    const playlistLabel = document.getElementById('playlistLabel');
+    const playlistInput = document.getElementById('playlistInput');
+    
+    if (zielListe === 'playlist') {
+        playlistLabel.style.display = 'block';
+        playlistInput.style.display = 'block';
+        playlistInput.required = true;
+    } else {
+        playlistLabel.style.display = 'none';
+        playlistInput.style.display = 'none';
+        playlistInput.required = false;
+    }
+}
+
+// Lade Playlists und zeige sie im Dropdown an
+async function ladePlaylistsInDropdown() {
+    const res = await fetch('/api/playlists/list');
+    const data = await res.json();
+    const playlistSelect = document.getElementById('playlistInput');
+    
+    playlistSelect.innerHTML = '<option value="">-- Bitte wählen --</option>';
+    if (data.items && data.items.length > 0) {
+        for (const p of data.items) {
+            const option = document.createElement('option');
+            option.value = p.playlist_id;
+            option.textContent = p.name;
+            playlistSelect.appendChild(option);
+        }
+    }
+}
+
+// Beim Laden der Seite Playlists laden
+window.addEventListener('load', function() {
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+    if (isLoggedIn === 'true') {
+        ladePlaylistsInDropdown();
+    }
+});
+
+// Eintrag hinzufügen (angepasst für Playlist-Integration)
 async function handleAddEntry(event) {
   event.preventDefault();
-  const benutzer_id = sessionStorage.getItem("benutzer_id"); /* Benutzer-ID aus der Session holen */
+  const benutzer_id = sessionStorage.getItem("benutzer_id");
   if (!benutzer_id) {
     alert("Bitte erst einloggen.");
     return;
   }
-  const titel = document.getElementById("titleInput").value.trim(); /* Leerzeichen entfernen */
-  const typ = document.getElementById("typeInput").value;/* hier nimmt er das Feld von dem Dropdown Menü */
-  const ziel_liste = document.getElementById("listTypeInput").value; // playlist|wishlist
-  const kategorie = document.getElementById("categoryInput").value.trim();     
+  
+  const titel = document.getElementById("titleInput").value.trim();
+  const typ = document.getElementById("typeInput").value;
+  const zielListe = document.getElementById("zielListeInput").value;
+  const kategorie = document.getElementById("categoryInput").value.trim();
   const kritik = document.getElementById("reviewInput").value.trim();
-  const ratingEl = document.querySelector('input[name="rating"]:checked');     
-  const rating = ratingEl ? ratingEl.value : null; /* hier nimmt er die Bewertung von den Sternen */
+  const ratingEl = document.querySelector('input[name="rating"]:checked');
+  const rating = ratingEl ? ratingEl.value : null;
 
-  // WENN Ziel-Liste == "playlist" → neue Playlist anlegen
-  if (ziel_liste === "playlist") {
-    const res = await fetch("/api/playlists/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: titel })
-    });
-    const data = await res.json();
-    if (!res.ok || !data.ok) {
-      alert(data.error || "Playlist konnte nicht erstellt werden");
+  // Wenn zu Playlist hinzufügen
+  if (zielListe === "playlist") {
+    const playlistId = document.getElementById("playlistInput").value;
+    if (!playlistId) {
+      alert("Bitte eine Playlist wählen.");
       return;
     }
-    event.target.reset();
-    ladePlaylists();
-    alert("Playlist gespeichert!");
-  } else {
-    // Standard: Wunschliste oder sonstige Liste
-    const res = await fetch("/api/eintrag/speichern", {
+    
+    const res = await fetch("/api/playlist_entry/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ /* hier speichert er es in eine Jason */
-        benutzer_id: Number(benutzer_id),
+      body: JSON.stringify({
+        playlist_id: Number(playlistId),
         titel,
         typ,
-        ziel_liste,
         kategorie,
         rating,
         kritik
       })
     });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Eintrag konnte nicht hinzugefügt werden");
+      return;
+    }
+    
+    event.target.reset();
+    await ladePlaylists();
+    alert("Eintrag zur Playlist hinzugefügt!");
+  } else if (zielListe === "wishlist") {
+    // Zur Wunschliste hinzufügen
+    const res = await fetch("/api/eintrag/speichern", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        benutzer_id: Number(benutzer_id),
+        titel,
+        typ,
+        ziel_liste: "wishlist",
+        kategorie,
+        rating,
+        kritik
+      })
+    });
+    
     const data = await res.json();
     if (!res.ok) {
       alert(data.error || "Speichern fehlgeschlagen");
       return;
     }
+    
     event.target.reset();
-    await ladeUndZeigeListen(); /* hier lädt er die Listen neu damit der neue Eintrag angezeigt wird */
-    ladePlaylists();
-    alert("Gespeichert!");
+    await ladeUndZeigeListen();
+    alert("Eintrag zur Wunschliste hinzugefügt!");
+  } else {
+    alert("Bitte wähle ein Ziel aus.");
   }
 }
 
@@ -891,6 +1292,9 @@ function sterneText(r) {
 }
 
 // Holt alle Einträge aus der DB und zeigt sie an
+let alleWunschlisten = [];
+let aktuelleWunschlisteId = null;
+
 async function ladeUndZeigeListen() {
     const res = await fetch(`/api/eintrag/liste`);
     const data = await res.json();
@@ -898,23 +1302,93 @@ async function ladeUndZeigeListen() {
         alert(data.error || "Liste laden fehlgeschlagen");
         return;
     }
-    const wishlistDiv = document.getElementById("wishlistContent");
-    wishlistDiv.innerHTML = "";
-    if (!data.items || data.items.length === 0) {
-        wishlistDiv.innerHTML = '<p style="text-align: center; color: #999;">Keine Einträge in der Wunschliste</p>';
-        return;
+    alleWunschlisten = data.items || [];
+    // Erste Wunschliste als aktiv setzen
+    if (alleWunschlisten.length > 0) {
+        if (!aktuelleWunschlisteId || !alleWunschlisten.some(w => w.id == aktuelleWunschlisteId)) {
+            aktuelleWunschlisteId = alleWunschlisten[0].id;
+        }
+    } else {
+        aktuelleWunschlisteId = null;
     }
-    for (const eintrag of data.items) {
-        wishlistDiv.innerHTML += `
-            <div class="entry">
-                <strong>${eintrag.titel}</strong> (${eintrag.typ})<br>
-                ${eintrag.kritik ? `<em>${eintrag.kritik}</em><br>` : ""}
-                ${eintrag.rating ? `<span>${sterneText(eintrag.rating)}</span><br>` : ""}
-            </div>
-        `;
-    }
+    zeigeWunschlistenUI();
+    if (aktuelleWunschlisteId) ladeAktuelleWunschliste();
+    else document.getElementById("wishlistContent").innerHTML = "<i>Keine Wunschliste vorhanden.</i>";
 }
 
+function zeigeWunschlistenUI() {
+    const div = document.getElementById("wishlistContent");
+    let html = "";
+    html += '<div style="margin-bottom:1em">';
+    html += '<select id="wishlistSelect" onchange="wishlistSelectWechsel(this.value)">';
+    for (const w of alleWunschlisten) {
+        html += `<option value="${w.id}" ${w.id == aktuelleWunschlisteId ? "selected" : ""}>${w.titel}</option>`;
+    }
+    html += '</select> ';
+    html += `<button onclick="neueWunschlisteAnlegen()">+</button> `;
+    if (alleWunschlisten.length) {
+        html += `<button onclick="bearbeiteWunschliste()">Bearbeiten</button>`;
+    }
+    html += '</div>';
+    div.innerHTML = html;
+}
+
+function wishlistSelectWechsel(id) {
+    aktuelleWunschlisteId = Number(id);
+    ladeAktuelleWunschliste();
+}
+
+async function ladeAktuelleWunschliste() {
+    if (!aktuelleWunschlisteId) return;
+    const div = document.getElementById("wishlistContent");
+    const res = await fetch(`/api/wishlist/${aktuelleWunschlisteId}`);
+    const data = await res.json();
+    if (!res.ok) {
+        div.innerHTML += "<div>Fehler beim Laden!</div>";
+        return;
+    }
+    let html = div.innerHTML; // UI oben behalten
+    if (!data.items || data.items.length === 0) {
+        html += "<i>Keine Einträge vorhanden</i>";
+    } else {
+        for (const eintrag of data.items) {
+            html += `
+                <div class="entry clickable" onclick="zeigeEntragModal({titel: '${eintrag.titel.replace(/'/g, "\\\\'")}'  , typ: '${eintrag.typ}', kategorie: '${eintrag.kategorie || ''}', rating: ${eintrag.rating || 0}, kritik: '${(eintrag.kritik || '').replace(/'/g, "\\\\'")}'}, 'wishlist')" style="cursor: pointer;">
+                    <strong>${eintrag.titel}</strong> (${eintrag.typ})<br>
+                    ${eintrag.kategorie ? `<em>Kategorie: ${eintrag.kategorie}</em><br>` : ""}
+                    ${eintrag.kritik ? `<em>${eintrag.kritik}</em><br>` : ""}
+                    ${eintrag.rating ? `<span>${sterneText(eintrag.rating)}</span><br>` : ""}
+                </div>
+            `;
+        }
+    }
+    div.innerHTML = html;
+}
+
+async function neueWunschlisteAnlegen() {
+    const name = prompt("Name der neuen Wunschliste?");
+    if (!name) return;
+    // Hier könnte ein API-Aufruf implementiert werden
+    alert("Neue Wunschliste hinzugefügt.");
+    await ladeUndZeigeListen();
+}
+
+async function bearbeiteWunschliste() {
+    if (!aktuelleWunschlisteId) return;
+    const action = prompt("Was möchtest du tun?\n1. Umbenennen\n2. Löschen\nGib 1 oder 2 ein:");
+    if (action === "1") {
+        const neueName = prompt("Neuer Name für Wunschliste?");
+        if (!neueName) return;
+        // Hier könnte ein API-Aufruf implementiert werden
+        alert("Wunschliste umbenannt.");
+        await ladeUndZeigeListen();
+    } else if (action === "2") {
+        if (!confirm("Wirklich diese Wunschliste löschen?")) return;
+        // Hier könnte ein API-Aufruf implementiert werden
+        alert("Wunschliste gelöscht.");
+        await ladeUndZeigeListen();
+    }
+}
 
 /* Login-Status prüfen beim Laden */
 window.addEventListener('load', function() {

@@ -3,10 +3,36 @@ import sqlite3
 import hashlib
 import secrets
 import webbrowser
+import re 
 from threading import Timer
 from datetime import datetime, timedelta
 
 from Datenbank import init_db, get_db_connection, DB_NAME
+
+def ist_gueltige_email(email):
+    if not email:
+        return False
+
+    # Leerzeichen vorne und hinten entfernen
+    email = email.strip().lower()
+
+    # Einfaches Format prüfen
+    muster = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+    if not re.match(muster, email):
+        return False
+
+    # Letzten Teil der Domain prüfen, z. B. "de" bei max@gmail.de
+    endung = email.split(".")[-1]
+
+    # Nur häufige und sinnvolle Endungen erlauben
+    erlaubte_endungen = ["de", "com", "net", "org", "eu", "at", "ch"]
+
+    if endung not in erlaubte_endungen:
+        return False
+
+    
+    
+    return True
 
 APP_NAME = "tjf"
 app = Flask(__name__, static_folder="static")
@@ -48,7 +74,10 @@ def add_missing_structures():
         cur.execute("ALTER TABLE benutzer ADD COLUMN lock_until TEXT;")
     except sqlite3.OperationalError:
         pass
-
+    try:
+        cur.execute("ALTER TABLE status ADD COLUMN playlist_id INTEGER;")
+    except sqlite3.OperationalError:
+        pass
     # Playlist mit Reihenfolge
     cur.execute("""
     CREATE TABLE IF NOT EXISTS playlist (
@@ -220,6 +249,7 @@ def api_eintrag_speichern():
     typ = (data.get("typ") or "").strip()
     ziel_liste = (data.get("ziel_liste") or "").strip()  # "playlist" oder "wishlist"
     kategorie = (data.get("kategorie") or "").strip() or None
+    playlist_id = data.get("playlist_id")
     rating = data.get("rating")  # optional
     kritik_text = (data.get("kritik") or "").strip() or None
 
@@ -251,27 +281,52 @@ def api_eintrag_speichern():
         (titel, typ),
     )
     row = cur.fetchone()
+
     if row:
         titel_id = row["titel_id"]
+
+        # Wenn eine Kategorie angegeben wurde, speichern wir sie als Genre beim Titel
+        if kategorie:
+            cur.execute(
+                "UPDATE titel SET genre = ? WHERE titel_id = ?",
+                (kategorie, titel_id),
+            )
     else:
         cur.execute(
-            "INSERT INTO titel (name, typ, genre, erscheinungsjahr, beschreibung) VALUES (?, ?, NULL, NULL, NULL)",
-            (titel, typ),
+            "INSERT INTO titel (name, typ, genre, erscheinungsjahr, beschreibung) VALUES (?, ?, ?, NULL, NULL)",
+            (titel, typ, kategorie),
         )
         titel_id = cur.lastrowid
 
-    # 2) status setzen (playlist => gesehen=1, wishlist => wunschliste=1)
-    gesehen = 1 if ziel_liste == "playlist" else 0
+    # 2) Status setzen
+    gesehen = 1 if ziel_liste == "playlist" else 0  
     wunschliste = 1 if ziel_liste == "wishlist" else 0
+
+    # Wunschliste hat keine Playlist-Zuordnung
+    if ziel_liste == "wishlist":
+        playlist_id = None
+
+    # playlist_id prüfen und in Zahl umwandeln
+    if playlist_id in ("", None):
+        playlist_id = None
+    else:
+        try:
+            playlist_id = int(playlist_id)
+        except ValueError:
+            return jsonify({"error": "playlist_id muss eine Zahl sein"}), 400
 
     cur.execute(
         """
-        INSERT INTO status (benutzer_id, titel_id, gesehen, wunschliste)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO status (benutzer_id, titel_id, gesehen, wunschliste, playlist_id)
+        VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(benutzer_id, titel_id)
-        DO UPDATE SET gesehen = excluded.gesehen, wunschliste = excluded.wunschliste, datum = datetime('now')
+        DO UPDATE SET
+            gesehen = excluded.gesehen,
+            wunschliste = excluded.wunschliste,
+            playlist_id = excluded.playlist_id,
+            datum = datetime('now')
         """,
-        (benutzer_id, titel_id, gesehen, wunschliste),
+        (benutzer_id, titel_id, gesehen, wunschliste, playlist_id),
     )
 
     # 3) Bewertung optional speichern
@@ -298,24 +353,8 @@ def api_eintrag_speichern():
             (benutzer_id, titel_id, kritik_text),
         )
 
-    # 5) Playlist / Wishlist Zusatz-Tabellen
-    if ziel_liste == "playlist":
-        # ans Ende der Playlist hängen
-        cur.execute(
-            "SELECT COALESCE(MAX(position), 0) + 1 AS next_pos FROM playlist WHERE benutzer_id = ?",
-            (benutzer_id,),
-        )
-        next_pos = cur.fetchone()["next_pos"]
-        cur.execute(
-            """
-            INSERT INTO playlist (benutzer_id, titel_id, position)
-            VALUES (?, ?, ?)
-            ON CONFLICT(benutzer_id, titel_id) DO UPDATE SET position = excluded.position
-            """,
-            (benutzer_id, titel_id, next_pos),
-        )
-    else:
-        # Wunschliste: Kategorie optional
+    # 5) Wunschliste: Kategorie optional
+    if ziel_liste == "wishlist":
         category_id = None
         if kategorie:
             cur.execute(
@@ -336,7 +375,6 @@ def api_eintrag_speichern():
             """,
             (benutzer_id, titel_id, category_id),
         )
-
     con.commit()
     con.close()
     return jsonify({"ok": True, "titel_id": titel_id}), 201
@@ -363,7 +401,7 @@ def api_eintrag_liste():
           s.wunschliste,
           b.rating,
           k.text AS kritik,
-          wc.name AS kategorie,
+          COALESCE(wc.name, t.genre) AS kategorie,
           p.position
         FROM status s
         JOIN titel t ON t.titel_id = s.titel_id
@@ -399,12 +437,15 @@ def api_eintrag_liste():
 def register():
     data = request.get_json(silent=True) or {}
     benutzername = (data.get("benutzername") or "").strip()
-    email = (data.get("email") or "").strip()
+    email = (data.get("email") or "").strip().lower()
     pin = data.get("pin") or ""
 
     # PIN ist euer "Passwort" -> kein extra passwort Feld
     if not benutzername or not email or not pin:
         return jsonify({"error": "benutzername, email, pin sind Pflicht"}), 400
+    # E-Mail prüfen 
+    if not ist_gueltige_email(email):
+        return jsonify({"error": "Bitte eine gültige E-Mail-Adresse eingeben"}), 400
     if not is_valid_pin(pin):
         return jsonify({"error": "PIN muss genau 4 Ziffern haben"}), 400
 
@@ -677,16 +718,31 @@ def playlist_entry_remove():
     benutzer_id, err = require_login()
     if err:
         return err
+
     data = request.get_json(silent=True) or {}
     playlist_id = data.get("playlist_id")
     titel_id = data.get("titel_id")
+
     if not playlist_id or not titel_id:
         return jsonify({"error": "playlist_id und titel_id sind Pflicht"}), 400
+
     con = get_db()
     cur = con.cursor()
-    cur.execute("DELETE FROM playlist_entry WHERE playlist_id = ? AND titel_id = ?", (playlist_id, titel_id))
+
+    cur.execute(
+        """
+        UPDATE status
+        SET playlist_id = NULL
+        WHERE benutzer_id = ?
+          AND titel_id = ?
+          AND playlist_id = ?
+        """,
+        (benutzer_id, titel_id, playlist_id),
+    )
+
     con.commit()
     con.close()
+
     return jsonify({"ok": True})
 
 @app.route("/api/playlist_entry/list", methods=["GET"])
@@ -694,22 +750,42 @@ def playlist_entry_list():
     benutzer_id, err = require_login()
     if err:
         return err
+
     playlist_id = request.args.get("playlist_id", type=int)
     if not playlist_id:
         return jsonify({"error": "playlist_id ist Pflicht"}), 400
+
     con = get_db()
     cur = con.cursor()
+
     cur.execute("""
-        SELECT e.titel_id, t.name, t.typ, t.genre, t.erscheinungsjahr
-        FROM playlist_entry e
-        JOIN titel t ON t.titel_id = e.titel_id
-        WHERE e.playlist_id = ?
-        ORDER BY e.position, t.name
-    """, (playlist_id,))
+        SELECT 
+            t.titel_id,
+            t.name,
+            t.typ,
+            t.genre,
+            t.erscheinungsjahr,
+            t.genre AS kategorie,
+            b.rating,
+            k.text AS kritik
+        FROM status s
+        JOIN titel t ON t.titel_id = s.titel_id
+        LEFT JOIN bewertung b
+            ON b.titel_id = t.titel_id
+            AND b.benutzer_id = s.benutzer_id
+        LEFT JOIN kritik k
+            ON k.titel_id = t.titel_id
+            AND k.benutzer_id = s.benutzer_id
+        WHERE s.benutzer_id = ?
+          AND s.playlist_id = ?
+          AND s.gesehen = 1
+        ORDER BY t.name
+    """, (benutzer_id, playlist_id))
+
     rows = cur.fetchall()
     con.close()
+
     return jsonify({"ok": True, "items": [dict(r) for r in rows]})
-# <<< ENDE NEU
 
 # ---------------- Wunschliste + Kategorien ----------------
 @app.route("/api/wishlist/category/create", methods=["POST"])

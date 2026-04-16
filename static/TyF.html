@@ -466,6 +466,10 @@
 
                 <label>Kategorie</label>
                 <input type="text" id="categoryInput">
+                <label>Playlist auswählen</label>
+                <select id="entryPlaylistSelect">
+                <option value="">-- Keine Playlist auswählen --</option>
+                </select>
 
                 <label>Bewertung</label>
                 <div class="star-rating">
@@ -486,112 +490,57 @@
 
                 <button type="submit">Speichern</button>
             </form>
+            <div class="entry">
+    <strong>Beispiel für einen neuen Eintrag:</strong><br>
+    Titel: Interstellar<br>
+    Typ: Film<br>
+    Speicherstatus: Playlist<br>
+    Kategorie: Sci-Fi<br>
+    Bewertung: 5 Sterne<br>
+    Eigene Kritik: Sehr spannender und emotionaler Film.
+</div>
         </div>
 
         <!-- Tab: Einträge (alle gespeicherten Einträge) -->
-        <div id="entries" class="tab-content">
-            <h2>Alle meine Einträge</h2>
-            
-            <!-- Unterreiter für Eintragstypen -->
-            <div class="sub-tabs">
-                <button class="sub-tab-button active" onclick="openSubTab(event, 'entriesFilme')">Filme</button>
-                <button class="sub-tab-button" onclick="openSubTab(event, 'entriesSerien')">Serien</button>
-                <button class="sub-tab-button" onclick="openSubTab(event, 'entriesDoku')">Dokumentationen</button>
-                <button class="sub-tab-button" onclick="openSubTab(event, 'entriesSonstiges')">Sonstiges</button>
-            </div>
+<div id="entries" class="tab-content">
+    <h2>Alle meine Einträge</h2>
 
-            <!-- Unterreiter: Filme -->
-            <div id="entriesFilme" class="sub-tab-content active">
-                <div class="entry">
-                    <strong>Beispiel-Film</strong> (Film) - <span style="color: #4a90e2; font-weight: bold;">Playlist</span><br>
-                    <div class="stars-display">★★★★★</div>
-                    <p>Ein großartiger Film!</p>
+    <!-- Unterreiter für Eintragstypen -->
+    <div class="sub-tabs">
+        <button class="sub-tab-button active" onclick="openSubTab(event, 'entriesFilme')">Filme</button>
+        <button class="sub-tab-button" onclick="openSubTab(event, 'entriesSerien')">Serien</button>
+        <button class="sub-tab-button" onclick="openSubTab(event, 'entriesDoku')">Dokumentationen</button>
+        <button class="sub-tab-button" onclick="openSubTab(event, 'entriesSonstiges')">Sonstiges</button>
+    </div>
 
-                    <h4>Kommentare</h4>
-                    <p><strong>Du:</strong> Sehr gut!</p>
+    <!-- Unterreiter: Filme -->
+    <div id="entriesFilme" class="sub-tab-content active"></div>
 
-                    <form onsubmit="handleComment(event)">
-                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
-                        <button type="submit">Kommentar speichern</button>
-                    </form>
-                </div>
+    <!-- Unterreiter: Serien -->
+    <div id="entriesSerien" class="sub-tab-content"></div>
 
-                <div class="entry">
-                    <strong>Kommender Film</strong> (Film) - <span style="color: #ff9800; font-weight: bold;">Wunschliste</span><br>
-                    <em>Kategorie: Action</em><br>
-                    <div class="stars-display">★★★☆☆</div>
+    <!-- Unterreiter: Dokumentationen -->
+    <div id="entriesDoku" class="sub-tab-content"></div>
 
-                    <h4>Kommentare</h4>
-                    <p><strong>Du:</strong> Freue mich drauf!</p>
-
-                    <form onsubmit="handleComment(event)">
-                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
-                        <button type="submit">Kommentar speichern</button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Unterreiter: Serien -->
-            <div id="entriesSerien" class="sub-tab-content">
-                <p style="text-align: center; color: #999;">Keine Serien hinzugefügt</p>
-            </div>
-
-            <!-- Unterreiter: Dokumentationen -->
-            <div id="entriesDoku" class="sub-tab-content">
-                <p style="text-align: center; color: #999;">Keine Dokumentationen hinzugefügt</p>
-            </div>
-
-            <!-- Unterreiter: Sonstiges -->
-            <div id="entriesSonstiges" class="sub-tab-content">
-                <p style="text-align: center; color: #999;">Keine Einträge hinzugefügt</p>
-            </div>
-        </div>
-
+    <!-- Unterreiter: Sonstiges -->
+    <div id="entriesSonstiges" class="sub-tab-content"></div>
+</div>
         <!-- Tab: Playlist -->
         <div id="playlist" class="tab-content">
             <h2>Meine Playlist</h2>
-            <button onclick="playlistLoeschen()">Komplette Playlist löschen</button>
             <div id="playlistContent"></div>
-            </div>
-                <div class="entry">
-                    <strong>Beispiel-Film</strong> (Film)<br>
-                    <div class="stars-display">★★★★★</div>
-                    <p>Ein großartiger Film!</p>
-
-                    <h4>Kommentare</h4>
-                    <p><strong>Du:</strong> Sehr gut!</p>
-
-                    <form onsubmit="handleComment(event)">
-                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
-                        <button type="submit">Kommentar speichern</button>
-                    </form>
-                </div>
-            </div>
         </div>
 
-        <!-- Tab: Wunschliste -->
-        <div id="wishlist" class="tab-content">
-            <h2>Meine Wunschliste</h2>
-            <div id="wishlistContent">
-                <div class="entry">
-                    <strong>Kommender Film</strong> (Film)<br>
-                    <em>Kategorie: Action</em><br>
-                    <div class="stars-display">★★★☆☆</div>
-
-                    <h4>Kommentare</h4>
-                    <p><strong>Du:</strong> Freue mich drauf!</p>
-
-                    <form onsubmit="handleComment(event)">
-                        <textarea name="comment_text" rows="3" required placeholder="Kommentieren..."></textarea>
-                        <button type="submit">Kommentar speichern</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Tab: Wunschliste -->
+<div id="wishlist" class="tab-content">
+    <h2>Meine Wunschliste</h2>
+    <div id="wishlistContent"></div>
 </div>
 
-<script> 
+</div>
+</div>
+
+<script>
 
 // Hilfsfunktion zum Wechsel zwischen Login und Registrierung
 function switchToRegister() {
@@ -798,7 +747,7 @@ async function ladePlaylists() {
     }
     zeigePlaylistsUI();
     if (aktuellePlaylistId) ladeAktuellePlaylist();
-    else document.getElementById("playlistContent").innerHTML = "<i>Keine Playlist vorhanden.</i>";
+    else document.getElementById("playlistContent").innerHTML += "<i>Keine Playlist vorhanden.</i>";
 }
 
 // Playlisten-UI select + Buttons
@@ -818,8 +767,18 @@ function zeigePlaylistsUI() {
     }
     html += '</div>';
     div.innerHTML = html;
-}
+    
+    // Playlist-Auswahl im Formular "Neuen Eintrag hinzufügen" befüllen
+    const entrySelect = document.getElementById("entryPlaylistSelect");
 
+    if (entrySelect) {
+        entrySelect.innerHTML = '<option value="">-- Keine Playlist auswählen --</option>';
+
+        for (const p of allePlaylists) {
+            entrySelect.innerHTML += `<option value="${p.playlist_id}">${p.name}</option>`;
+        }
+    }
+}
 function playlistSelectWechsel(id) {
     aktuellePlaylistId = Number(id);
     ladeAktuellePlaylist();
@@ -827,30 +786,40 @@ function playlistSelectWechsel(id) {
 
 // Einträge der aktuellen Playlist laden & anzeigen
 async function ladeAktuellePlaylist() {
-    if (!aktuellePlaylistId) return;
-    const div = document.getElementById("playlistContent");
-    const res = await fetch(`/api/playlist_entry/list?playlist_id=${aktuellePlaylistId}`);
-    const data = await res.json();
-    if (!res.ok) {
-        div.innerHTML += "<div>Fehler beim Laden!</div>";
-        return;
+  if (!aktuellePlaylistId) return;
+
+  const div = document.getElementById("playlistContent");
+  const res = await fetch(`/api/playlist_entry/list?playlist_id=${aktuellePlaylistId}`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    div.innerHTML += "<div>Fehler beim Laden!</div>";
+    return;
+  }
+
+  zeigePlaylistsUI();
+
+  let html = div.innerHTML;
+
+  if (!data.items || data.items.length === 0) {
+    html += "<i>Keine Einträge in der Playlist.</i>";
+  } else {
+    for (const eintrag of data.items) {
+      const sterne = eintrag.rating ? "★".repeat(Number(eintrag.rating)) : "";
+
+      html += `
+        <div class="entry">
+        <strong>${eintrag.name}</strong> (${eintrag.typ})<br>
+        ${eintrag.kategorie ? `<em>Kategorie: ${eintrag.kategorie}</em><br>` : ""}
+        ${sterne ? `<div>${sterne}</div>` : ""}
+        ${eintrag.kritik ? `<p>${eintrag.kritik}</p>` : ""}  
+          <button onclick="eintragAusPlaylistEntfernen(${eintrag.titel_id})">Entfernen</button>
+        </div>
+      `;
     }
-    let html = div.innerHTML; // Buttons/Dropdown oben behalten
-    if (!data.items || data.items.length == 0) {
-        html += "<i>Keine Einträge in der Playlist.</i>";
-    } else {
-        for (const eintrag of data.items) {
-            html += `
-                <div class="entry">
-                    <strong>${eintrag.name}</strong> (${eintrag.typ})<br>
-                    ${eintrag.genre ? `<em>Genre: ${eintrag.genre}</em><br>` : ""}
-                    ${eintrag.erscheinungsjahr ? `<span>Jahr: ${eintrag.erscheinungsjahr}</span><br>` : ""}
-                    <button onclick="eintragAusPlaylistEntfernen(${eintrag.titel_id})">Entfernen</button>
-                </div>
-            `;
-        }
-    }
-    div.innerHTML = html;
+  }
+
+  div.innerHTML = html;
 }
 
 // Eintrag aus aktueller Playlist entfernen
@@ -883,47 +852,42 @@ async function handleAddEntry(event) {
   const ratingEl = document.querySelector('input[name="rating"]:checked');
   const rating = ratingEl ? ratingEl.value : null;
 
-  // WENN Ziel-Liste == "playlist" → neue Playlist anlegen
-  if (ziel_liste === "playlist") {
-    const res = await fetch("/api/playlists/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: titel })
-    });
-    const data = await res.json();
-    if (!res.ok || !data.ok) {
-      alert(data.error || "Playlist konnte nicht erstellt werden");
-      return;
-    }
-    event.target.reset();
-    ladePlaylists();
-    alert("Playlist gespeichert!");
-  } else {
-    // Standard: Wunschliste oder sonstige Liste
-    const res = await fetch("/api/eintrag/speichern", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        benutzer_id: Number(benutzer_id),
-        titel,
-        typ,
-        ziel_liste,
-        kategorie,
-        rating,
-        kritik
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || "Speichern fehlgeschlagen");
-      return;
-    }
-    event.target.reset();
-    await ladeUndZeigeListen();
-    ladePlaylists();
-    alert("Gespeichert!");
-  }
+  const playlistId = document.getElementById("entryPlaylistSelect")?.value || null;
+
+  if (ziel_liste === "playlist" && !playlistId) {
+    alert("Bitte eine Playlist auswählen.");
+    return;
 }
+
+
+  const res = await fetch("/api/eintrag/speichern", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      benutzer_id: Number(benutzer_id),
+      titel,
+      typ,
+      ziel_liste,
+      kategorie,
+      playlist_id: playlistId,
+      rating,
+      kritik
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.error || "Speichern fehlgeschlagen");
+    return;
+  }
+
+  event.target.reset();
+  await ladeUndZeigeListen();
+  ladePlaylists();
+  alert("Gespeichert!");
+}
+
 
 // Hilfsfunktion: Sterne anzeigen
 function sterneText(r) { 
@@ -936,26 +900,69 @@ function sterneText(r) {
 async function ladeUndZeigeListen() {
   const res = await fetch(`/api/eintrag/liste`);
   const data = await res.json();
+
   if (!res.ok) {
     alert(data.error || "Liste laden fehlgeschlagen");
     return;
   }
-  const playlistDiv = document.getElementById("playlistContent");
+
   const wishlistDiv = document.getElementById("wishlistContent");
-  // Für die neue Tabs: playlistDiv wird JETZT vom Multi-Playlist Bereich gemanagt!
-  // Wir schreiben nur noch die Wunschliste voll:
+  const filmeDiv = document.getElementById("entriesFilme");
+  const serienDiv = document.getElementById("entriesSerien");
+  const dokuDiv = document.getElementById("entriesDoku");
+  const sonstigesDiv = document.getElementById("entriesSonstiges");
+
   wishlistDiv.innerHTML = "";
+  filmeDiv.innerHTML = "";
+  serienDiv.innerHTML = "";
+  dokuDiv.innerHTML = "";
+  sonstigesDiv.innerHTML = "";
+
   for (const e of data.items) {
-    if (e.ziel_liste !== "wishlist") continue;
+    const statusText = e.ziel_liste === "wishlist" ? "Wunschliste" : "Playlist";
+
     const card = `
       <div class="entry">
-        <strong>${e.titel}</strong> (${e.typ})<br>
+        <strong>${e.titel}</strong> (${e.typ}) - <span style="color: #4a90e2; font-weight: bold;">${statusText}</span><br>
         ${e.kategorie ? `<em>Kategorie: ${e.kategorie}</em><br>` : ""}
         ${e.rating ? `<div class="stars-display">${sterneText(e.rating)}</div>` : ""}
         ${e.kritik ? `<p>${e.kritik}</p>` : ""}
       </div>
     `;
-    wishlistDiv.insertAdjacentHTML("beforeend", card);
+
+    if (e.ziel_liste === "wishlist") {
+      wishlistDiv.insertAdjacentHTML("beforeend", card);
+    }
+
+    if (e.typ === "Film") {
+      filmeDiv.insertAdjacentHTML("beforeend", card);
+    } else if (e.typ === "Serie") {
+      serienDiv.insertAdjacentHTML("beforeend", card);
+    } else if (e.typ === "Dokumentation") {
+      dokuDiv.insertAdjacentHTML("beforeend", card);
+    } else {
+      sonstigesDiv.insertAdjacentHTML("beforeend", card);
+    }
+  }
+
+  if (!filmeDiv.innerHTML.trim()) {
+    filmeDiv.innerHTML = '<p style="text-align: center; color: #999;">Keine Filme hinzugefügt</p>';
+  }
+
+  if (!serienDiv.innerHTML.trim()) {
+    serienDiv.innerHTML = '<p style="text-align: center; color: #999;">Keine Serien hinzugefügt</p>';
+  }
+
+  if (!dokuDiv.innerHTML.trim()) {
+    dokuDiv.innerHTML = '<p style="text-align: center; color: #999;">Keine Dokumentationen hinzugefügt</p>';
+  }
+
+  if (!sonstigesDiv.innerHTML.trim()) {
+    sonstigesDiv.innerHTML = '<p style="text-align: center; color: #999;">Keine Einträge hinzugefügt</p>';
+  }
+
+  if (!wishlistDiv.innerHTML.trim()) {
+    wishlistDiv.innerHTML = '<p style="text-align: center; color: #999;">Keine Einträge in der Wunschliste</p>';
   }
 }
 
@@ -986,4 +993,3 @@ document.addEventListener('click', function(event) {
 </script>
 
 </body>
-</html>

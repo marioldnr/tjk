@@ -57,17 +57,19 @@ def init_db():
     # Status (gesehen/wunschliste) – Playlist/Wunschliste bauen wir darauf auf
     cur.execute("""
     CREATE TABLE IF NOT EXISTS status (
-      status_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-      benutzer_id INTEGER NOT NULL,
-      titel_id    INTEGER NOT NULL,
-      gesehen     INTEGER NOT NULL DEFAULT 0 CHECK (gesehen IN (0,1)),
-      wunschliste INTEGER NOT NULL DEFAULT 0 CHECK (wunschliste IN (0,1)),
-      datum       TEXT NOT NULL DEFAULT (datetime('now')),
-      FOREIGN KEY (benutzer_id) REFERENCES benutzer(benutzer_id),
-      FOREIGN KEY (titel_id)    REFERENCES titel(titel_id),
-      UNIQUE (benutzer_id, titel_id)
+        status_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        benutzer_id INTEGER NOT NULL,
+        titel_id INTEGER NOT NULL,
+        gesehen INTEGER NOT NULL DEFAULT 0 CHECK (gesehen IN (0,1)),
+        wunschliste INTEGER NOT NULL DEFAULT 0 CHECK (wunschliste IN (0,1)),
+        playlist_id INTEGER,
+        datum TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (benutzer_id) REFERENCES benutzer(benutzer_id),
+        FOREIGN KEY (titel_id) REFERENCES titel(titel_id),
+        FOREIGN KEY (playlist_id) REFERENCES playlists(playlist_id),
+        UNIQUE (benutzer_id, titel_id)
     );
-    """)
+""")
 
     # Bewertung: nur ganze Sterne 1..5
     cur.execute("""

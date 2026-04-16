@@ -890,31 +890,54 @@ function sterneText(r) {
 
 /* Holt alle Einträge aus der DB und zeigt sie an */
 async function ladeUndZeigeListen() {
-  const res = await fetch(`/api/eintrag/liste`);
-  const data = await res.json();
-  if (!res.ok) {
-    alert(data.error || "Liste laden fehlgeschlagen");
-    return;
-  }
-  /* nimmt daten von oben verarbeitet sie und zeigt sie wie gefordert an */
-  const playlistDiv = document.getElementById("playlistContent");
-  const wishlistDiv = document.getElementById("wishlistContent");
-  // Für die neue Tabs: playlistDiv wird JETZT vom Multi-Playlist Bereich gemanagt!
-  // Wir schreiben nur noch die Wunschliste voll:
-  wishlistDiv.innerHTML = "";
-  /* hier geht er alle Einträge durch und erstellt für jeden Eintrag eine Karte mit den Informationen */
-  for (const e of data.items) {
-    if (e.ziel_liste !== "wishlist") continue;
-    const card = `
-      <div class="entry">
-        <strong>${e.titel}</strong> (${e.typ})<br>
-        ${e.kategorie ? `<em>Kategorie: ${e.kategorie}</em><br>` : ""}
-        ${e.rating ? `<div class="stars-display">${sterneText(e.rating)}</div>` : ""}
-        ${e.kritik ? `<p>${e.kritik}</p>` : ""}
-      </div>
-    `;
-    wishlistDiv.insertAdjacentHTML("beforeend", card);
-  }
+    const res = await fetch(`/api/eintrag/liste`);
+    const data = await res.json();
+    if (!res.ok) {
+        alert(data.error || "Liste laden fehlgeschlagen");
+        return;
+    }
+    /* nimm Daten aus Wunschliste und verarbeite sie damit sie angezeigt werden können */
+    const wishlistDiv = document.getElementById("wishlistContent");
+    wishlistDiv.innerHTML = "";
+    // Gruppiere Einträge nach Kategorie
+    const kategorien = {};
+    for (const e of data.items) {
+        if (e.ziel_liste !== "wishlist") continue;
+        const kat = e.kategorie || "Ohne Kategorie";
+        if (!kategorien[kat]) kategorien[kat] = [];
+        kategorien[kat].push(e);
+    }
+    // Zeige nur die Kategorien als klickbare Liste
+    Object.keys(kategorien).forEach(kat => {
+        const katDiv = document.createElement("div");
+        katDiv.className = "entry";
+        katDiv.style.cursor = "pointer";
+        katDiv.innerHTML = `<strong>${kat}</strong> <span style='color:#888;'>(anklicken für Details)</span>`;
+        katDiv.onclick = function() {
+            // Details zu dieser Kategorie anzeigen (Filme, Bewertungen, Kritik)
+            if (katDiv.querySelector('.details')) {
+                katDiv.querySelector('.details').remove();
+                return;
+            }
+            const details = document.createElement('div');
+            details.className = 'details';
+            details.style.marginTop = '1em';
+            kategorien[kat].forEach(e => {
+                details.innerHTML += `
+                    <div style='border-top:1px solid #eee; margin-top:0.5em; padding-top:0.5em;'>
+                        <strong>${e.titel}</strong> (${e.typ})<br>
+                        ${e.rating ? `<div class='stars-display'>${sterneText(e.rating)}</div>` : ""}
+                        ${e.kritik ? `<p>${e.kritik}</p>` : ""}
+                    </div>
+                `;
+            });
+            katDiv.appendChild(details);
+        };
+        wishlistDiv.appendChild(katDiv);
+    });
+    if (Object.keys(kategorien).length === 0) {
+        wishlistDiv.innerHTML = '<p style="text-align: center; color: #999;">Keine Einträge in der Wunschliste</p>';
+    }
 }
 
 // Kommentar hinzufügen – dummy

@@ -999,6 +999,47 @@ def playlists_list():
     con.close()
     return jsonify({"ok": True, "items": [dict(r) for r in rows]})
 
+# ################# ALLE EINTRÄGE FÜR EINTRÄGE-TAB #################
+@app.route("/api/alle_eintraege", methods=["GET"])
+def api_alle_eintraege():
+    """
+    Liefert alle Einträge eines Benutzers (Wunschliste + Playlist kombiniert).
+    Zum Filtern nach Typ im Einträge-Tab.
+    """
+    benutzer_id = request.args.get("benutzer_id")
+    if not benutzer_id:
+        benutzer_id = session.get("benutzer_id")
+    
+    if not benutzer_id:
+        return jsonify({"error": "nicht eingeloggt"}), 401
+
+    con = get_db()
+    cur = con.cursor()
+
+    # Alle Einträge aus dem Status (Wunschliste + Playlist)
+    cur.execute(
+        """
+        SELECT
+          t.titel_id,
+          t.name AS titel,
+          t.typ,
+          t.genre AS kategorie,
+          b.rating,
+          k.text AS kritik
+        FROM status s
+        JOIN titel t ON t.titel_id = s.titel_id
+        LEFT JOIN bewertung b ON b.benutzer_id = s.benutzer_id AND b.titel_id = s.titel_id
+        LEFT JOIN kritik k ON k.benutzer_id = s.benutzer_id AND k.titel_id = s.titel_id
+        WHERE s.benutzer_id = ?
+        ORDER BY t.name ASC
+        """,
+        (benutzer_id,),
+    )
+
+    items = [dict(r) for r in cur.fetchall()]
+    con.close()
+
+    return jsonify({"items": items})
 
 
 print("ROUTES DEBUG:")

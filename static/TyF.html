@@ -771,6 +771,8 @@ function zeigePlaylistsUI() {
     if (allePlaylists.length) {
         html += `<button onclick="playlistUmbenennen()">Umbenennen</button> `;
         html += `<button onclick="playlistLoeschen()">Löschen</button>`;
+    } else {
+        html += '<button onclick="playlistLoeschen()">Löschen</button>';
     }
     html += '</div>';
     div.innerHTML = html;
@@ -792,9 +794,7 @@ async function ladeAktuellePlaylist() {
         return;
     }
     let html = div.innerHTML; // Buttons/Dropdown oben behalten
-    if (!data.items || data.items.length == 0) {
-        html += "<i>Keine Einträge in der Playlist.</i>";
-    } else {
+    if (data.items && data.items.length > 0) {
         for (const eintrag of data.items) {
             html += `
                 <div class="entry">
@@ -805,6 +805,8 @@ async function ladeAktuellePlaylist() {
                 </div>
             `;
         }
+    } else {
+        html += "<i>Keine Einträge in der Playlist.</i>";
     }
     div.innerHTML = html;
 }
@@ -888,7 +890,7 @@ function sterneText(r) {
   return "★★★★★".slice(0, r) + "☆☆☆☆☆".slice(r);
 }
 
-/* Holt alle Einträge aus der DB und zeigt sie an */
+// Holt alle Einträge aus der DB und zeigt sie an
 async function ladeUndZeigeListen() {
     const res = await fetch(`/api/eintrag/liste`);
     const data = await res.json();
@@ -898,31 +900,23 @@ async function ladeUndZeigeListen() {
     }
     const wishlistDiv = document.getElementById("wishlistContent");
     wishlistDiv.innerHTML = "";
-    for (const e of data.items) {
-        if (e.ziel_liste !== "wishlist") continue;
-        const card = `
-          <div class="entry">
-            <strong>${e.titel}</strong> (${e.typ})<br>
-            ${e.kategorie ? `<em>Kategorie: ${e.kategorie}</em><br>` : ""}
-            ${e.rating ? `<div class="stars-display">${sterneText(e.rating)}</div>` : ""}
-            ${e.kritik ? `<p>${e.kritik}</p>` : ""}
-          </div>
-        `;
-        wishlistDiv.insertAdjacentHTML("beforeend", card);
-    }
-    if (wishlistDiv.innerHTML === "") {
+    if (!data.items || data.items.length === 0) {
         wishlistDiv.innerHTML = '<p style="text-align: center; color: #999;">Keine Einträge in der Wunschliste</p>';
+        return;
+    }
+    for (const eintrag of data.items) {
+        wishlistDiv.innerHTML += `
+            <div class="entry">
+                <strong>${eintrag.titel}</strong> (${eintrag.typ})<br>
+                ${eintrag.kritik ? `<em>${eintrag.kritik}</em><br>` : ""}
+                ${eintrag.rating ? `<span>${sterneText(eintrag.rating)}</span><br>` : ""}
+            </div>
+        `;
     }
 }
 
-// Kommentar hinzufügen – dummy
-function handleComment(event) {
-    event.preventDefault();
-    alert('Kommentar gespeichert!');
-    event.target.reset();
-}
 
-// Login-Status prüfen beim Laden
+/* Login-Status prüfen beim Laden */
 window.addEventListener('load', function() {
     const isLoggedIn = sessionStorage.getItem('isLoggedIn');
     if (isLoggedIn === 'true') {
@@ -930,7 +924,7 @@ window.addEventListener('load', function() {
     }
 });
 
-// Dropdown-Menü schließen bei Klick außerhalb
+/* Dropdown-Menü schließen bei Klick außerhalb */ 
 document.addEventListener('click', function(event) {
     const profileSection = event.target.closest('.profile-section');
     if (!profileSection) {

@@ -142,6 +142,29 @@ def init_extra_tables():
       FOREIGN KEY (category_id) REFERENCES wishlist_category(category_id)
     );
     """)
+    # >>> NEU: Multi-Playlist-Struktur
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS playlists (
+    playlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    benutzer_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (benutzer_id) REFERENCES benutzer(benutzer_id)
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS playlist_entry (
+    playlist_id INTEGER NOT NULL,
+    titel_id INTEGER NOT NULL,
+    position INTEGER NOT NULL,
+    added_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (playlist_id, titel_id),
+    FOREIGN KEY (playlist_id) REFERENCES playlists(playlist_id) ON DELETE CASCADE,
+    FOREIGN KEY (titel_id) REFERENCES titel(titel_id)
+);
+""")
+# <<< ENDE NEU
 
     con.commit()
     con.close()

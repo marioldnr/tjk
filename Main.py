@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify, send_from_directory, session
 import sqlite3
 import hashlib
 import secrets
+import webbrowser
+from threading import Timer
 from datetime import datetime, timedelta
 
 from Datenbank import init_db, get_db_connection, DB_NAME
@@ -23,6 +25,12 @@ def hash_text(text: str) -> str:
 
 def is_valid_pin(pin: str) -> bool:
     return isinstance(pin, str) and len(pin) == 4 and pin.isdigit()
+
+def require_login():
+    benutzer_id = session.get("benutzer_id")
+    if not benutzer_id:
+        return None, (jsonify({"error": "nicht eingeloggt"}), 401)
+    return int(benutzer_id), None
 
 def add_missing_structures():
     """
@@ -53,7 +61,16 @@ def add_missing_structures():
       FOREIGN KEY (titel_id) REFERENCES titel(titel_id)
     );
     """)
-
+       # 🟢🟢🟢 HIER KOMMT DER NEUE BLOCK FÜR MULTI-PLAYLIST:
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS playlists (
+      playlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      benutzer_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (benutzer_id) REFERENCES benutzer(benutzer_id)
+    );
+    """)
     # Wunschliste Kategorien + Items
     cur.execute("""
     CREATE TABLE IF NOT EXISTS wishlist_category (
@@ -577,93 +594,122 @@ def reset_confirm():
     return jsonify({"ok": True, "message": f"{row['purpose']} wurde zurückgesetzt"})
 
 # ---------------- Playlist ----------------
-@app.route("/api/playlist/add", methods=["POST"])
-def playlist_add():
+
+
+@app.route("/api/playlists/create", methods=["POST"])
+def playlists_create():
+    benutzer_id, err = require_login()
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
-    benutzer_id = data.get("benutzer_id")
-    titel_id = data.get("titel_id")
-
-    if not benutzer_id or not titel_id:
-        return jsonify({"error": "benutzer_id und titel_id sind Pflicht"}), 400
-
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Name ist Pflicht"}), 400
     con = get_db()
     cur = con.cursor()
-    cur.execute("SELECT COALESCE(MAX(position), 0) AS maxpos FROM playlist WHERE benutzer_id = ?", (benutzer_id,))
-    maxpos = cur.fetchone()["maxpos"]
+    cur.execute("INSERT INTO playlists (benutzer_id, name) VALUES (?, ?)", (benutzer_id, name))
+    con.commit()
+    playlist_id = cur.lastrowid
+    con.close()
+    return jsonify({"ok": True, "playlist_id": playlist_id})
 
+@app.route("/api/playlists/delete", methods=["POST"])
+def playlists_delete():
+    benutzer_id, err = require_login()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    playlist_id = data.get("playlist_id")
+    if not playlist_id:
+        return jsonify({"error": "playlist_id ist Pflicht"}), 400
+    con = get_db()
+    cur = con.cursor()
+    cur.execute("DELETE FROM playlists WHERE playlist_id = ? AND benutzer_id = ?", (playlist_id, benutzer_id))
+    con.commit()
+    con.close()
+    return jsonify({"ok": True})
+
+@app.route("/api/playlists/rename", methods=["POST"])
+def playlists_rename():
+    benutzer_id, err = require_login()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    playlist_id = data.get("playlist_id")
+    name = (data.get("name") or "").strip()
+    if not playlist_id or not name:
+        return jsonify({"error": "playlist_id und name sind Pflicht"}), 400
+    con = get_db()
+    cur = con.cursor()
+    cur.execute("UPDATE playlists SET name = ? WHERE playlist_id = ? AND benutzer_id = ?", (name, playlist_id, benutzer_id))
+    con.commit()
+    con.close()
+    return jsonify({"ok": True})
+
+@app.route("/api/playlist_entry/add", methods=["POST"])
+def playlist_entry_add():
+    benutzer_id, err = require_login()
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    playlist_id = data.get("playlist_id")
+    titel_id = data.get("titel_id")
+    if not playlist_id or not titel_id:
+        return jsonify({"error": "playlist_id und titel_id sind Pflicht"}), 400
+    con = get_db()
+    cur = con.cursor()
+    cur.execute("SELECT COALESCE(MAX(position), 0) AS maxpos FROM playlist_entry WHERE playlist_id = ?", (playlist_id,))
+    maxpos = cur.fetchone()["maxpos"]
     try:
         cur.execute(
-            "INSERT INTO playlist (benutzer_id, titel_id, position) VALUES (?, ?, ?)",
-            (benutzer_id, titel_id, int(maxpos) + 1),
+            "INSERT INTO playlist_entry (playlist_id, titel_id, position) VALUES (?, ?, ?)",
+            (playlist_id, titel_id, int(maxpos) + 1),
         )
         con.commit()
     except sqlite3.IntegrityError:
         con.close()
-        return jsonify({"error": "Titel ist schon in der Playlist"}), 409
-
+        return jsonify({"error": "Titel ist schon in Playlist"}), 409
     con.close()
     return jsonify({"ok": True})
 
-@app.route("/api/playlist/remove", methods=["POST"])
-def playlist_remove():
+@app.route("/api/playlist_entry/remove", methods=["POST"])
+def playlist_entry_remove():
+    benutzer_id, err = require_login()
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
-    benutzer_id = data.get("benutzer_id")
+    playlist_id = data.get("playlist_id")
     titel_id = data.get("titel_id")
-
-    if not benutzer_id or not titel_id:
-        return jsonify({"error": "benutzer_id und titel_id sind Pflicht"}), 400
-
+    if not playlist_id or not titel_id:
+        return jsonify({"error": "playlist_id und titel_id sind Pflicht"}), 400
     con = get_db()
     cur = con.cursor()
-    cur.execute("DELETE FROM playlist WHERE benutzer_id = ? AND titel_id = ?", (benutzer_id, titel_id))
-    normalize_playlist(con, int(benutzer_id))
+    cur.execute("DELETE FROM playlist_entry WHERE playlist_id = ? AND titel_id = ?", (playlist_id, titel_id))
     con.commit()
     con.close()
     return jsonify({"ok": True})
 
-@app.route("/api/playlist/list", methods=["GET"])
-def playlist_list():
-    benutzer_id = request.args.get("benutzer_id", type=int)
-    if not benutzer_id:
-        return jsonify({"error": "benutzer_id ist Pflicht"}), 400
-
+@app.route("/api/playlist_entry/list", methods=["GET"])
+def playlist_entry_list():
+    benutzer_id, err = require_login()
+    if err:
+        return err
+    playlist_id = request.args.get("playlist_id", type=int)
+    if not playlist_id:
+        return jsonify({"error": "playlist_id ist Pflicht"}), 400
     con = get_db()
     cur = con.cursor()
-    cur.execute(
-        """
-        SELECT p.titel_id, p.position, t.name, t.typ, t.genre, t.erscheinungsjahr
-        FROM playlist p
-        LEFT JOIN titel t ON t.titel_id = p.titel_id
-        WHERE p.benutzer_id = ?
-        ORDER BY p.position ASC
-        """,
-        (benutzer_id,),
-    )
+    cur.execute("""
+        SELECT e.titel_id, t.name, t.typ, t.genre, t.erscheinungsjahr
+        FROM playlist_entry e
+        JOIN titel t ON t.titel_id = e.titel_id
+        WHERE e.playlist_id = ?
+        ORDER BY e.position, t.name
+    """, (playlist_id,))
     rows = cur.fetchall()
     con.close()
     return jsonify({"ok": True, "items": [dict(r) for r in rows]})
-
-@app.route("/api/playlist/move", methods=["POST"])
-def playlist_move():
-    data = request.get_json(silent=True) or {}
-    benutzer_id = data.get("benutzer_id")
-    titel_id = data.get("titel_id")
-    new_position = data.get("new_position")
-
-    if not benutzer_id or not titel_id or new_position is None:
-        return jsonify({"error": "benutzer_id, titel_id, new_position sind Pflicht"}), 400
-
-    con = get_db()
-    cur = con.cursor()
-
-    cur.execute(
-        "UPDATE playlist SET position = ? WHERE benutzer_id = ? AND titel_id = ?",
-        (int(new_position), benutzer_id, titel_id),
-    )
-    normalize_playlist(con, int(benutzer_id))
-    con.commit()
-    con.close()
-    return jsonify({"ok": True})
+# <<< ENDE NEU
 
 # ---------------- Wunschliste + Kategorien ----------------
 @app.route("/api/wishlist/category/create", methods=["POST"])
@@ -768,46 +814,6 @@ def wishlist_remove():
     con.close()
     return jsonify({"ok": True})
 
-@app.route("/api/wishlist/list", methods=["GET"])
-def wishlist_list():
-    benutzer_id = request.args.get("benutzer_id", type=int)
-    category_id = request.args.get("category_id", type=int)
-    sort = (request.args.get("sort") or "name").strip().lower()     # name|created_at
-    direction = (request.args.get("direction") or "asc").strip().lower()  # asc|desc
-
-    if not benutzer_id:
-        return jsonify({"error": "benutzer_id ist Pflicht"}), 400
-
-    sort_sql = "t.name"
-    if sort == "created_at":
-        sort_sql = "w.created_at"
-
-    dir_sql = "DESC" if direction == "desc" else "ASC"
-
-    params = [benutzer_id]
-    where = "WHERE w.benutzer_id = ?"
-    if category_id:
-        where += " AND w.category_id = ?"
-        params.append(category_id)
-
-    con = get_db()
-    cur = con.cursor()
-    cur.execute(
-        f"""
-        SELECT w.titel_id, w.created_at, w.category_id,
-               c.name AS category_name,
-               t.name, t.typ, t.genre, t.erscheinungsjahr
-        FROM wishlist_item w
-        LEFT JOIN wishlist_category c ON c.category_id = w.category_id
-        LEFT JOIN titel t ON t.titel_id = w.titel_id
-        {where}
-        ORDER BY {sort_sql} {dir_sql}
-        """,
-        tuple(params),
-    )
-    rows = cur.fetchall()
-    con.close()
-    return jsonify({"ok": True, "items": [dict(r) for r in rows]})
 
 # ---------------- Bewertungssystem (nutzt eure Tabelle "bewertung") ----------------
 @app.route("/api/bewertung/set", methods=["POST"])
@@ -905,29 +911,34 @@ def comment_update():
     con.close()
     return jsonify({"ok": True})
 
-@app.route("/api/comment/delete", methods=["POST"])
-def comment_delete():
-    data = request.get_json(silent=True) or {}
-    benutzer_id = data.get("benutzer_id")
-    titel_id = data.get("titel_id")
-
-    if not benutzer_id or not titel_id:
-        return jsonify({"error": "benutzer_id und titel_id sind Pflicht"}), 400
-
+@app.route("/api/playlists/list", methods=["GET"])
+def playlists_list():
+    benutzer_id, err = require_login()
+    if err:
+        return err
     con = get_db()
     cur = con.cursor()
-    cur.execute("DELETE FROM kritik WHERE benutzer_id = ? AND titel_id = ?", (benutzer_id, titel_id))
-    con.commit()
+    cur.execute("SELECT playlist_id, name FROM playlists WHERE benutzer_id = ? ORDER BY name", (benutzer_id,))
+    rows = cur.fetchall()
     con.close()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "items": [dict(r) for r in rows]})
 
-@app.route("/api/logout", methods=["POST"])
-def api_logout():
-    session.clear()
-    return jsonify({"ok": True})
+
+
+print("ROUTES DEBUG:")
+for rule in app.url_map.iter_rules():
+    print(rule, "->", rule.endpoint, "methods:", rule.methods)
 
 if __name__ == "__main__":
     init_db()
     add_missing_structures()
     print(f"Starte {APP_NAME} mit Datenbank: {DB_NAME}")
-    app.run(debug=True)
+
+    # Browser automatisch öffnen
+    import webbrowser
+    from threading import Timer
+    url = "http://127.0.0.1:5000/static/TyF.html"
+    Timer(1.0, lambda: webbrowser.open(url)).start()
+
+    # WICHTIG: Debug/Reloader aus, sonst startet Flask zweimal
+    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)

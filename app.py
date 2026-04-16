@@ -5,14 +5,19 @@
 # -Film-Playlist und Wunschliste
 # -Sterne-Bewertung
 # -Kommentarfunktion
-
+"""
+DEPRECATED / NICHT VERWENDEN.
+Diese Datei ist ein altes Demo-Beispiel und wird im Projekt nicht genutzt.
+Startpunkt ist Main.py.
+"""
 from flask import Flask, render_template, request, redirect, url_for, session
 
 # Flask Anwendung erstellen
 app = Flask(__name__)
 
 # Secret Key wird für Sessions benötigt (z.B. zum Speichern von Login-Daten)
-app.secret_key = "supergeheim"  # In echten Projekten geheim halten!
+import os
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(32))  # In echten Projekten geheim halten!
 
 # "Datenbanken" im Speicher (für Schulprojekt ausreichend)
 # Nutzer werden in einem Dictionary gespeichert:
